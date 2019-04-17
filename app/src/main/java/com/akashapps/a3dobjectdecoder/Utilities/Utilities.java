@@ -7,7 +7,7 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 
 import com.akashapps.a3dobjectdecoder.R;
-import com.akashapps.a3dobjectdecoder.TexturedPlane;
+import com.akashapps.a3dobjectdecoder.objects.TexturedPlane;
 
 public class Utilities {
     private static Context context;

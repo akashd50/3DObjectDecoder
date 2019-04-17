@@ -1,12 +1,12 @@
-package com.akashapps.a3dobjectdecoder;
+package com.akashapps.a3dobjectdecoder.objects;
 
 import android.opengl.GLES20;
+
+import com.akashapps.a3dobjectdecoder.UI.GLRenderer;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
-
-import javax.microedition.khronos.opengles.GL10;
 
 import static android.opengl.GLES20.GL_BLEND;
 import static android.opengl.GLES20.GL_ONE_MINUS_SRC_ALPHA;

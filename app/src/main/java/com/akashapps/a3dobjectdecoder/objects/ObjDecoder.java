@@ -1,33 +1,21 @@
-package com.akashapps.a3dobjectdecoder;
+package com.akashapps.a3dobjectdecoder.objects;
 
-import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.opengl.GLES20;
 import android.opengl.GLUtils;
 import android.opengl.Matrix;
-import android.os.SystemClock;
 import android.util.Log;
 import android.widget.Toast;
+
+import com.akashapps.a3dobjectdecoder.UI.GLRenderer;
 
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
-import java.util.logging.Level;
-
-import static android.opengl.GLES20.GL_BACK;
-import static android.opengl.GLES20.GL_BLEND;
-import static android.opengl.GLES20.GL_CCW;
-import static android.opengl.GLES20.GL_CULL_FACE;
-import static android.opengl.GLES20.GL_CULL_FACE_MODE;
-import static android.opengl.GLES20.GL_FRONT;
-import static android.opengl.GLES20.GL_FRONT_AND_BACK;
-import static android.opengl.GLES20.GL_FRONT_FACE;
-import static android.opengl.GLES20.GL_ONE_MINUS_SRC_ALPHA;
-import static android.opengl.GLES20.GL_SRC_ALPHA;
 
 public class ObjDecoder {
     private int id;

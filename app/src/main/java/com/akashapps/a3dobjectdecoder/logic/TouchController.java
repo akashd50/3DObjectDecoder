@@ -1,4 +1,4 @@
-package com.akashapps.a3dobjectdecoder;
+package com.akashapps.a3dobjectdecoder.logic;
 
 import android.support.v4.view.MotionEventCompat;
 import android.view.MotionEvent;

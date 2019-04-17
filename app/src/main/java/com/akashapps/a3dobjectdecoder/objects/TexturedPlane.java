@@ -1,4 +1,4 @@
-package com.akashapps.a3dobjectdecoder;
+package com.akashapps.a3dobjectdecoder.objects;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -7,14 +7,14 @@ import android.graphics.Color;
 import android.opengl.GLES20;
 import android.opengl.GLUtils;
 import android.opengl.Matrix;
+
+import com.akashapps.a3dobjectdecoder.UI.GLRenderer;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 
 import static android.opengl.GLES20.GL_BLEND;
-import static android.opengl.GLES20.GL_BLEND_SRC_RGB;
-import static android.opengl.GLES20.GL_DST_COLOR;
-import static android.opengl.GLES20.GL_ONE_MINUS_DST_COLOR;
 import static android.opengl.GLES20.GL_ONE_MINUS_SRC_ALPHA;
 import static android.opengl.GLES20.GL_SRC_ALPHA;
 

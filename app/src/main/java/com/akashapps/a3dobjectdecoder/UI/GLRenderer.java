@@ -1,27 +1,24 @@
-package com.akashapps.a3dobjectdecoder;
+package com.akashapps.a3dobjectdecoder.UI;
 
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
-import android.graphics.drawable.Drawable;
-import android.media.Image;
 import android.opengl.GLES20;
 //import android.opengl.Matrix;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
-import android.os.SystemClock;
-import android.util.Log;
 
-import java.io.File;
-import java.io.InputStream;
 import java.util.logging.Logger;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
+import com.akashapps.a3dobjectdecoder.objects.ObjDecoder;
+import com.akashapps.a3dobjectdecoder.objects.ObjectDecoderWLS;
+import com.akashapps.a3dobjectdecoder.R;
+import com.akashapps.a3dobjectdecoder.objects.SimpleVector;
+import com.akashapps.a3dobjectdecoder.objects.TexturedPlane;
+import com.akashapps.a3dobjectdecoder.logic.TouchController;
 import com.akashapps.a3dobjectdecoder.Utilities.*;
+import com.akashapps.a3dobjectdecoder.objects.Cube;
 //import com.threed.jpct.*;
 //import com.threed.jpct.util.*;
 

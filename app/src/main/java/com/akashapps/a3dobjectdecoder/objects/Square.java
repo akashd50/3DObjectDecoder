@@ -1,15 +1,9 @@
-package com.akashapps.a3dobjectdecoder;
+package com.akashapps.a3dobjectdecoder.objects;
 import android.content.Context;
-import android.content.res.Resources;
-import android.opengl.GLES20;
 import android.opengl.Matrix;
-import android.widget.Toast;
 
 import com.akashapps.a3dobjectdecoder.Utilities.Utilities;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.FloatBuffer;
 public class Square {
     private float scrWidth,scrHeight;
 

@@ -1,19 +1,10 @@
-package com.akashapps.a3dobjectdecoder;
+package com.akashapps.a3dobjectdecoder.UI;
 
 import android.content.Context;
-import android.content.pm.ActivityInfo;
 import android.opengl.GLSurfaceView;
-import android.support.v4.view.MotionEventCompat;
 import android.view.MotionEvent;
-import android.widget.Toast;
 
-import com.akashapps.a3dobjectdecoder.Utilities.Utilities;
-
-import javax.microedition.khronos.egl.EGL10;
-import javax.microedition.khronos.egl.EGLConfig;
-import javax.microedition.khronos.egl.EGLDisplay;
-
-import static android.support.v4.view.MotionEventCompat.getActionMasked;
+import com.akashapps.a3dobjectdecoder.logic.TouchController;
 
 public class GLRendererView extends GLSurfaceView{
     private static GLRenderer mRenderer;

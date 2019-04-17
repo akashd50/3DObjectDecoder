@@ -1,4 +1,4 @@
-package com.akashapps.a3dobjectdecoder;
+package com.akashapps.a3dobjectdecoder.objects;
 
 public class SimpleVector {
     public float x, y,z;

@@ -8,7 +8,22 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
-    <activity android:name=".GLRendererActivity"
+    <activity android:name=".UI.GLRendererActivity"
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+        <intent-filter>
+           <!-- <action android:name="android.intent.action.MAIN" />
+            <action android:name="com.akashapps.shoottospace.GLRendererActivity"/>
+            <category android:name="android.intent.category.LAUNCHER" />-->
+            <action android:name="android.intent.action.VIEW"/>
+        </intent-filter>
+    </activity>
+        <activity android:name=".UI.MainGameActivity"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+            </intent-filter>
+        </activity>
+    <activity android:name=".UI.ActivityHome"
         android:theme="@style/Theme.AppCompat.Light.NoActionBar">
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />

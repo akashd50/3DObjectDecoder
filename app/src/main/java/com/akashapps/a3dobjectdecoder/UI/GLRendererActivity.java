@@ -1,21 +1,15 @@
-package com.akashapps.a3dobjectdecoder;;
+package com.akashapps.a3dobjectdecoder.UI;;
 
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
-import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 
 import java.lang.reflect.Field;
 
-import javax.microedition.khronos.egl.EGL10;
-import javax.microedition.khronos.egl.EGLConfig;
-import javax.microedition.khronos.egl.EGLDisplay;
-
 public class GLRendererActivity extends Activity {
     private GLRendererView glRendererView;
-    public static GLRendererActivity activityManager = null;
     public static Context context;
     public static GLRendererActivity instance;
     @Override
@@ -28,7 +22,6 @@ public class GLRendererActivity extends Activity {
         context = this;
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         glRendererView = new GLRendererView(getApplication());
-
         setContentView(glRendererView);
     }
 
@@ -53,7 +46,6 @@ public class GLRendererActivity extends Activity {
     public void onBackPressed() {
         //super.onBackPressed();
        // glRendererView.onQuit();
-        System.exit(0);
         finish();
     }
 

@@ -1,4 +1,4 @@
-package com.akashapps.a3dobjectdecoder;
+package com.akashapps.a3dobjectdecoder.objects;
 
 import android.content.Context;
 import android.content.res.Resources;
