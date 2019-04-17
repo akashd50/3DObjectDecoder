@@ -7,6 +7,7 @@ import android.opengl.GLES20;
 import android.opengl.GLUtils;
 import android.opengl.Matrix;
 import android.util.Log;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.akashapps.a3dobjectdecoder.UI.GLRenderer;
@@ -38,6 +39,7 @@ public class ObjectDecoderWLS {
     public float rotateX,rotateY,rotateZ, defRotX, defRotY, defRotZ, lAngleX, lAngleY, lAngleZ;
     public float transformY,transformX,transformZ, scaleX,scaleY, scaleZ;
     private float defTransX,defTransY, defTransZ;
+    private SimpleVector NegX, PosX, NegY, PosY, NegZ, PosZ;
 
     private String TPVERTEXSHADER =
             "uniform mat4 u_Matrix;" +
@@ -78,6 +80,15 @@ public class ObjectDecoderWLS {
     private Context context;
     public ObjectDecoderWLS(int fileId, int texId, Context context){
         lAngleX = 0f;lAngleY=0f;lAngleZ=1f;
+        NegX = new SimpleVector(0f,0f,0f);
+        NegY = new SimpleVector(0f,0f,0f);
+        NegZ = new SimpleVector(0f,0f,0f);
+        PosX = new SimpleVector(0f,0f,0f);
+        PosY = new SimpleVector(0f,0f,0f);
+        PosZ = new SimpleVector(0f,0f,0f);
+
+        this.scale(1f,1f,1f);
+
         this.id = fileId;
         this.context = context;
         vertices = new ArrayList<SimpleVector>();
@@ -208,9 +219,35 @@ public class ObjectDecoderWLS {
             while ((temp = reader.readLine()) != null) {
                 String[] verts = temp.split(" ");
                 if (verts[0].compareTo("v") == 0) {
+
                     vertices.add(new SimpleVector(Float.parseFloat(verts[1]),
                             Float.parseFloat(verts[2]),
                             Float.parseFloat(verts[3])));
+
+                    float x = Float.parseFloat(verts[1]);
+                    float y = Float.parseFloat(verts[2]);
+                    float z = Float.parseFloat(verts[3]);
+                    if(x < NegX.x){
+                        NegX.x = x;
+                    }
+                    if(x > PosX.x){
+                        PosX.x = x;
+                    }
+
+                    if(y < NegY.y){
+                        NegY.y = y;
+                    }
+                    if(y > PosY.y){
+                        PosY.y = y;
+                    }
+
+                    if(z < NegZ.z){
+                        NegZ.z = z;
+                    }
+                    if(z > PosZ.z){
+                        PosZ.z = z;
+                    }
+
                     vPointer++;
                 } else if (verts[0].compareTo("vn") == 0) {
                     normals.add(new SimpleVector(Float.parseFloat(verts[1]),
@@ -326,7 +363,7 @@ public class ObjectDecoderWLS {
 
         Matrix.setIdentityM(temp,0);
         Matrix.translateM(temp,0,transformX,transformY,transformZ);
-        //Matrix.scaleM(temp,0,scaleX,scaleY,scaleZ);
+        Matrix.scaleM(temp,0,scaleX,scaleY,scaleZ);
         Matrix.rotateM(temp, 0, rotateX, 1, 0, 0);
         Matrix.rotateM(temp, 0, rotateY, 0, 1, 0);
         Matrix.rotateM(temp, 0, rotateZ, 0, 0, 1);
@@ -423,9 +460,10 @@ public class ObjectDecoderWLS {
         rotateX =0f;
         rotateY =0f;
     }
-    public void scale(float x, float y){
-        scaleX+=x;
-        scaleY+=y;
+    public void scale(float x, float y, float z){
+        scaleX=x;
+        scaleY=y;
+        scaleZ =z;
     }
     //public ArrayList<Vector3> getVertices(){return this.vertices;}
     private int loadTexture(Context context, int resID){
@@ -468,5 +506,48 @@ public class ObjectDecoderWLS {
         // creates OpenGL ES program executables
         GLES20.glLinkProgram(mProgram);
         //  }
+    }
+
+    public SimpleVector getNegX(){return NegX;}
+
+    public SimpleVector getNegY() {
+        return NegY;
+    }
+    public SimpleVector getNegZ(){return NegZ;}
+
+    public SimpleVector getPosX() {
+        return PosX;
+    }
+
+    public SimpleVector getPosY() {
+        return PosY;
+    }
+
+    public SimpleVector getPosZ() {
+        return PosZ;
+    }
+
+    public float getLength(){
+        return PosX.x - NegX.x;
+    }
+
+    public float getBreadth(){
+        return PosZ.z - NegZ.z;
+    }
+
+    public float getHeight(){
+        return PosY.y - NegY.y;
+    }
+
+    public void setLength(float x){
+        scaleX = x/this.getLength();
+    }
+
+    public void setBredth(float z){
+        scaleZ = z/this.getBreadth();
+    }
+
+    public void setHeight(float y){
+        scaleY = y/this.getHeight();
     }
 }

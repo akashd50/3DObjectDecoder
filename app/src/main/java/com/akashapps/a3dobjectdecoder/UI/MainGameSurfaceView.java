@@ -42,6 +42,7 @@ public class MainGameSurfaceView extends GLSurfaceView {
             case MotionEvent.ACTION_DOWN:
 
                 touchController.touchDown(event);
+                mRenderer.onTouchDown(event);
                 break;
             // invalidate();
             case MotionEvent.ACTION_POINTER_DOWN:
@@ -49,6 +50,7 @@ public class MainGameSurfaceView extends GLSurfaceView {
                 break;
             case MotionEvent.ACTION_UP:
                 touchController.touchUp(event);
+                mRenderer.onTouchUp(event);
                 break;
             case MotionEvent.ACTION_POINTER_UP:
                 touchController.extraPointerUp();

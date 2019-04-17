@@ -74,13 +74,12 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         //cube = new ObjDecoder(R.raw.android_experiment, R.drawable.rickuii, context);
         //cube.scale(-0.5f,-0.5f);
         cube2 = new ObjectDecoderWLS(R.raw.android_experiment, R.drawable.rickuii, context);
-        //cube.transformZ = -3f;
-        cube2.transformZ = -3f;
-        float[] c1 = {1.0f,0.5f,0.5f,1.0f};
-        float[] c2 = {0.5f,0.5f,1.0f,1.0f};
-        float[] c3 = {0.5f,1.0f,0.5f,1.0f};
 
-       // c = new Cube(0f,0f,0f,0.5f,0.5f,0.5f,c1,c2,c3,context);
+        System.out.println("================================== L|B|H+======"+cube2.getLength()+
+                "=="+cube2.getBreadth()+"=="+cube2.getHeight());
+
+        cube2.transformZ = -3f;
+
     }
 
     public void onDrawFrame(GL10 unused) {
@@ -176,14 +175,4 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         }
     }
 
-    public void onActivityEnded(){
-        /*processesDone = false;
-        fb.clear();
-        //fb.dispose();
-        if(world!=null) {
-            world.dispose();
-        }
-        TextureManager.getInstance().flush();
-        PAUSED = true;*/
-    }
 }

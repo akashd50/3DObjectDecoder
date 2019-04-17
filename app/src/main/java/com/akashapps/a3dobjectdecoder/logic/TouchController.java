@@ -21,26 +21,7 @@ public class TouchController {
     public static int secondPointerID, secondPointerIndex, firstPointerID, firstPointerIndex;
     public static float secondPtrX, secondPtrY;
     private boolean scrolUp,scrollDown,scrollLeft,scrollRight;
-
-    //private Square dPadBack,dpadTouch;
-
-    private boolean dPadClickd;
-
-    public static final float REST_STEP = 0f;
-    public static final float FIRST_STEP = 0.05f;
-    public static final float SECOND_STEP = 0.1f;
-    public static final float THIRD_STEP = 0.15f;
-    public static final float FORTH_STEP = 0.20f;
-
-    public static final String DPAD_DIR_R = "right";
-    public static final String DPAD_DIR_L = "left";
-    public static final String DPAD_DIR_U = "up";
-    public static final String DPAD_DIR_D = "down";
-
     private String currDirHor,currDirVer;
-
-    private float activeDpadX = REST_STEP;
-    private float activeDpadY = REST_STEP;
 
     public TouchController(){
         PINCH = 0;
@@ -102,7 +83,6 @@ public class TouchController {
 
     public void touchUp(MotionEvent event){
         fingerOnScreen = false;
-      //  Window.checkTouchUp(TOUCHNEWX, TOUCHNEWY);
         TOUCHDOWNX = -1;
         TOUCHDOWNY = -1;
         touchPrevX = -1;
@@ -110,13 +90,9 @@ public class TouchController {
         TOUCHNEWX = -1;
         TOUCHNEWY = -1;
 
-        dPadClickd = false;
-       // dpadTouch.changeTransform(dpadTouch.getDefaultX(),dpadTouch.getDefaultY(),dpadTouch.getDefaultZ());
         currDirVer = null;
         currDirHor = null;
-        //slider.onTouchUp(TOUCHNEWX, TOUCHNEWY);
-        //dpad.onTouchUp(TOUCHNEWX,TOUCHNEWY);
-        //homeWindow.onTouchUp(TOUCHDOWNX,TOUCHDOWNY);
+
     }
 
     public void touchMovement(MotionEvent event){
@@ -133,11 +109,6 @@ public class TouchController {
             float ty = SCTNEWY;
             SCTNEWX = event.getX(scIndex);
             SCTNEWY = event.getY(scIndex);
-            //dpad.onTouchMove(TOUCHNEWX,TOUCHNEWY);
-            //homeWindow.onTouchMove(TOUCHNEWX,TOUCHNEWY);
-            //   Window.checkTouchMove(TOUCHNEWX, TOUCHNEWY);
-            //float dist = (float) Math.sqrt((SCTNEWX - tx) * (SCTNEWX - tx) + (SCTNEWY - ty) * (SCTNEWY - ty));
-            //float dist2 = (float) Math.sqrt((TOUCHNEWX - touchPrevX) * (TOUCHNEWX - touchPrevX) + (TOUCHNEWY - touchPrevY) * (TOUCHNEWY - touchPrevY));
             float dist = (float) Math.sqrt((TOUCHDOWNX - secondPtrX) * (TOUCHDOWNX - secondPtrX) + (TOUCHDOWNY - secondPtrY) * (TOUCHDOWNY - secondPtrY));
             float distF = (float) Math.sqrt((TOUCHNEWX - SCTNEWX) * (TOUCHNEWX - SCTNEWX) + (TOUCHNEWY - SCTNEWY) * (TOUCHNEWY - SCTNEWY));
             PINCH = (distF-dist)/100;
@@ -167,94 +138,6 @@ public class TouchController {
         rotationTurnX = xd/-100f;
         rotationalTurnY =  yd / -100f;
     }
-
-   /* private void sliderChecking(){
-        slider.onTouchMove(TOUCHNEWX,TOUCHNEWY);
-        if(slider.distanceFromOrigin()>0.8f){
-            slider.setSliderSpeed(FORTH_STEP);
-        }else if(slider.distanceFromOrigin()>0.6f){
-            slider.setSliderSpeed(THIRD_STEP);
-        }else if(slider.distanceFromOrigin()>0.4f){
-            slider.setSliderSpeed(SECOND_STEP);
-        }else if(slider.distanceFromOrigin()>0.2f){
-            slider.setSliderSpeed(FIRST_STEP);
-        }
-    }*/
-
-   /* private void dPadChecking(){
-        if(dPadClickd){
-            *//*float tempX = (TOUCHNEWX - screenWidth/2) / (screenWidth/2);*//*
-            float tempX = ((TOUCHNEWX - screenWidth/2)*Utilities.SCR_RATIO)/(screenWidth/2);
-            float tempY = (screenHeight/2-TOUCHNEWY)*(2/screenHeight);
-           *//* if(TOUCHNEWX<dPadBack.getRight() && TOUCHNEWX>dPadBack.getLeft()) {
-                dpadTouch.changeTrasnformX(tempX);
-            }*//*
-            if(tempX<dPadBack.getDefaultX()+0.2f && tempX>dPadBack.getDefaultX()-0.2f) {
-                dpadTouch.changeTrasnformX(tempX);
-            }
-
-            if(dpadTouch.getTransformX()>dpadTouch.getDefaultX()) {
-                currDirHor = DPAD_DIR_R;
-                float cVal = dpadTouch.getDefaultX();
-                if (dpadTouch.getTransformX() - cVal > 0.15f) {
-                    activeDpadX = FORTH_STEP;
-                } else if (dpadTouch.getTransformX()  - cVal> 0.10f) {
-                    activeDpadX = THIRD_STEP;
-                } else if (dpadTouch.getTransformX() - cVal > 0.05f) {
-                    activeDpadX = SECOND_STEP;
-                } else if (dpadTouch.getTransformX() - cVal > 0.0f) {
-                    activeDpadX = FIRST_STEP;
-                }
-            }else if(dpadTouch.getTransformX()<dpadTouch.getDefaultX()){
-                currDirHor = DPAD_DIR_L;
-                float temp = dpadTouch.getTransformX();
-                float temp2 = dPadBack.getTransformX();
-                if (- temp + temp2 > 0.15f) {
-                    activeDpadX = FORTH_STEP;
-                } else if (-temp + temp2 > 0.10f) {
-                    activeDpadX = THIRD_STEP;
-                } else if (-temp + temp2 > 0.05f) {
-                    activeDpadX = SECOND_STEP;
-                } else if (-temp + temp2 > 0.0f) {
-                    activeDpadX = FIRST_STEP;
-                }
-            }
-
-            if(dpadTouch.getTransformY()>-0.70) {
-                currDirVer = DPAD_DIR_U;
-                float temp = dpadTouch.getTransformY();
-                float temp2 = dPadBack.getTransformY();
-                if (temp - temp2 > 0.15f) {
-                    activeDpadY = FORTH_STEP;
-                } else if (temp - temp2 > 0.10f) {
-                    activeDpadY = THIRD_STEP;
-                } else if (temp - temp2 > 0.05f) {
-                    activeDpadY = SECOND_STEP;
-                } else if (temp - temp2 > 0.0f) {
-                    activeDpadY = FIRST_STEP;
-                }
-            }else if(dpadTouch.getTransformY()<-0.70){
-                currDirVer = DPAD_DIR_D;
-                float temp = dpadTouch.getTransformY();
-                float temp2 = dPadBack.getTransformY();
-                if ( -temp - (-temp2) > 0.15f) {
-                    activeDpadY = FORTH_STEP;
-                } else if (-temp - (-temp2) > 0.10f) {
-                    activeDpadY = THIRD_STEP;
-                } else if (-temp - (-temp2) > 0.05f) {
-                    activeDpadY = SECOND_STEP;
-                } else if (-temp - (-temp2) > 0.0f) {
-                    activeDpadY = FIRST_STEP;
-                }
-            }
-
-            if(TOUCHNEWY<dPadBack.getBottom() && TOUCHNEWY>dPadBack.getTop()){
-                dpadTouch.changeTrasnformY(tempY);
-            }
-        }
-    }*/
-
-
 
     public float getRy(){return this.rotationalTurnY;}
     public float getRx(){return this.rotationTurnX;}
@@ -305,9 +188,6 @@ public class TouchController {
             scrollRight = false;
         }
     }
-    public float getActiveDpadX(){return this.activeDpadX;}
-    public float getActiveDpadY(){return this.activeDpadY;}
-    public boolean isDPadClicked(){return dPadClickd;}
 
     public boolean isDirHor(String dir){
         if(currDirHor!=null) {
