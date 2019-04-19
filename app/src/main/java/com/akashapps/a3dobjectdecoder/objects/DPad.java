@@ -45,8 +45,8 @@ public class DPad {
         icon = new TexturedPlane(0f,0f,0f,scale,scale,context, R.drawable.slider_iconn,bp);
         background = new TexturedPlane(0f,0f,0f,scale*2,scale*2,context, R.drawable.dpad_back,bp);
 
-        background.setDefaultTrans(center.x,center.y,center.z);
-        icon.setDefaultTrans(center.x,center.y,center.z+2f);
+        background.setDefaultTrans(center.x,center.y,center.z+2f);
+        icon.setDefaultTrans(center.x,center.y,center.z+2.5f);
     }
 
     public void draw(float[] mMVPMatrix){

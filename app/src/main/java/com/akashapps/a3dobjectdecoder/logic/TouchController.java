@@ -89,7 +89,7 @@ public class TouchController {
         touchPrevY = -1;
         TOUCHNEWX = -1;
         TOUCHNEWY = -1;
-
+        PINCH = 0f;
         currDirVer = null;
         currDirHor = null;
 
@@ -164,6 +164,7 @@ public class TouchController {
     public float getTouchX(){return TOUCHNEWX;}
     public float getTouchY(){return TOUCHNEWY;}
     public float getTouchPrevX(){return touchPrevX;}
+    public float getTouchPrevY(){return touchPrevY;}
 
     public boolean isFingerOnScreen(){return this.fingerOnScreen;}
 

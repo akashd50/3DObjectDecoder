@@ -18,7 +18,7 @@ import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 
-public class ObjectDecoderWLS {
+public class ObjectDecoderWLS extends SceneObject{
     private int id;
     private ArrayList<SimpleVector> vertices;
     private ArrayList<SimpleVector> normals;
@@ -39,7 +39,7 @@ public class ObjectDecoderWLS {
     public float rotateX,rotateY,rotateZ, defRotX, defRotY, defRotZ, lAngleX, lAngleY, lAngleZ;
     public float transformY,transformX,transformZ, scaleX,scaleY, scaleZ;
     private float defTransX,defTransY, defTransZ;
-    private SimpleVector NegX, PosX, NegY, PosY, NegZ, PosZ;
+    private SimpleVector NegX, PosX, NegY, PosY, NegZ, PosZ, mainlight;
 
     private String TPVERTEXSHADER =
             "uniform mat4 u_Matrix;" +
@@ -69,7 +69,7 @@ public class ObjectDecoderWLS {
                     "void main()" +
                     "{" +
                     "vec3 scaledNormal = v_Normal;"+
-                    "float diffuse = max(dot(scaledNormal, v_VectorToLight), 0.0);" +
+                    "float diffuse = max(dot(scaledNormal, v_VectorToLight), 0.2);" + //0.2 is ambient light value
                     "vec3 f_color = vec3(1.0,1.0,1.0)*diffuse;"+
                     //"v_Color *= diffuse;"+
                     "gl_FragColor = vec4(f_color,1.0)*texture2D(u_TextureUnit, v_TextureCoordinates);" +
@@ -80,6 +80,7 @@ public class ObjectDecoderWLS {
     private Context context;
     public ObjectDecoderWLS(int fileId, int texId, Context context){
         lAngleX = 0f;lAngleY=0f;lAngleZ=1f;
+        mainlight = new SimpleVector();
         NegX = new SimpleVector(0f,0f,0f);
         NegY = new SimpleVector(0f,0f,0f);
         NegZ = new SimpleVector(0f,0f,0f);
@@ -256,10 +257,7 @@ public class ObjectDecoderWLS {
                     vnpointer++;
 
                 } else if (verts[0].compareTo("f")==0){
-                    /*ArrayList<Integer> l = new ArrayList<Integer>();
-                    l.add(Integer.parseInt(verts[1].charAt(0)+""));
-                    l.add(Integer.parseInt(verts[2].charAt(0)+""));
-                    l.add(Integer.parseInt(verts[3].charAt(0)+""));*/
+
                     String[] v1 = verts[1].split("/");
                     Config c = new Config();
 
@@ -273,10 +271,6 @@ public class ObjectDecoderWLS {
 
                     drawConfig.add(c);
 
-                    //drawConfig.add(new Config(Integer.parseInt(verts[1].charAt(0)+""),Integer.parseInt(verts[2].charAt(0)+""),Integer.parseInt(verts[3].charAt(0)+"")));
-                   /* drawConfig.set(rPointer,[0] = Integer.parseInt(verts[1].charAt(0)+"");
-                    drawConfig[rPointer][1] = Integer.parseInt(verts[2].charAt(0)+"");
-                    drawConfig[rPointer][2] = Integer.parseInt(verts[3].charAt(0)+"");*/
                     rPointer++;
                 }else if(verts[0].compareTo("vt")==0){
                     uvs.add(new SimpleVector(Float.parseFloat(verts[1]),
@@ -299,15 +293,15 @@ public class ObjectDecoderWLS {
         // Pass the projection and view transformation to the shader
         GLES20.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, mMVPMatrix, 0);
 
-        float perp = (float)Math.sin(lAngleX*Math.PI/180);
-        float base = (float)Math.cos(lAngleX*Math.PI/180);
+        //float perp = (float)Math.sin(lAngleX*Math.PI/180);
+        //float base = (float)Math.cos(lAngleX*Math.PI/180);
         if(lAngleX<360) {
             lAngleX += 1;
         }else{
             lAngleX = 0;
         }
         int vectorToLight = GLES20.glGetUniformLocation(mProgram, "u_VectorToLight");
-        GLES20.glUniform3f(vectorToLight, base,0.5f,perp);
+        GLES20.glUniform3f(vectorToLight, mainlight.x, mainlight.y, mainlight.z);
         //==========================================================================================
         // Enable a handle to the triangle vertices
         // get handle to vertex shader's vPosition member
@@ -372,59 +366,7 @@ public class ObjectDecoderWLS {
         drawHelper(scratch);
     }
 
-    private void generateTriangles(){
-        for(int i=0;i<drawConfig.size();i++){
-            /*float x1 = vertices.get(drawConfig[i][0]-1).getVx()/3;
-            float y1 = vertices[drawConfig[i][0]-1].getVy()/3;
-            float z1 = vertices[drawConfig[i][0]-1].getVz()/3;
 
-            float x2 = vertices[drawConfig[i][1]-1].getVx()/3;
-            float y2 = vertices[drawConfig[i][1]-1].getVy()/3;
-            float z2 = vertices[drawConfig[i][1]-1].getVz()/3;
-
-            float x3 = vertices[drawConfig[i][2]-1].getVx()/3;
-            float y3 = vertices[drawConfig[i][2]-1].getVy()/3;
-            float z3 = vertices[drawConfig[i][2]-1].getVz()/3;*/
-           /* float x1 = vertices.get(drawConfig.get(i).get(0)-1).x;
-            float y1 = vertices.get(drawConfig.get(i).get(0)-1).y;
-            float z1 = vertices.get(drawConfig.get(i).get(0)-1).z;
-
-            float x2 = vertices.get(drawConfig.get(i).get(1)-1).x;
-            float y2 = vertices.get(drawConfig.get(i).get(1)-1).y;
-            float z2 = vertices.get(drawConfig.get(i).get(1)-1).z;
-
-            float x3 = vertices.get(drawConfig.get(i).get(2)-1).x;
-            float y3 = vertices.get(drawConfig.get(i).get(2)-1).y;
-            float z3 = vertices.get(drawConfig.get(i).get(2)-1).z;
-
-            float[] v = {x1,y1,z1,
-                        x2,y2,z2,
-                        x3,y3,z3};
-            float[] c = {(float)Math.random(),(float)Math.random(),(float)Math.random(),1.0f};
-           // triangles.add(new Triangle(v,c));*/
-        }
-    }
-
-    /* public void drawTriangles(float[] mMVPmatrix){
-         long time = SystemClock.uptimeMillis() % 4000L;
-         float angle = 0.090f * ((int) time);
-
-         float[] scratcht = new float[16];
-         float[] tempMoveMat = new float[16];
-         Matrix.setIdentityM(tempMoveMat, 0);
-         //Matrix.translateM(tempMoveMat, 0, 0.0f, 0.0f, 0f);
-         //Matrix.rotateM(tempMoveMat, 0, angle, 1f, 0f, 0f);
-
-         //float angle2 = 0.090f * ((int) time);
-         Matrix.rotateM(tempMoveMat, 0, angle, 1f, 0f, 0f);
-         //Matrix.rotateM(tempMoveMat, 0, angle, 0f, 1f, 1f);
-
-         Matrix.multiplyMM(scratcht, 0, tempMoveMat, 0, mMVPmatrix, 0);
-         for(int i=0;i<triangles.size();i++){
-             triangles.get(i).draw(scratcht);
-        }
-
-     }*/
     public void rotateX(float angle){
         if(rotateX+angle<=360) {
             rotateX += angle;
@@ -433,6 +375,12 @@ public class ObjectDecoderWLS {
             angle = angle - temp;
             rotateX = angle;
         }
+    }
+
+    public void setMainLight(SimpleVector l){
+        mainlight.x = l.x;
+        mainlight.y = l.y;
+        mainlight.z = l.z;
     }
 
     public void rotateY(float angle){
@@ -464,6 +412,22 @@ public class ObjectDecoderWLS {
         scaleX=x;
         scaleY=y;
         scaleZ =z;
+    }
+
+    public void setLocation(SimpleVector s){
+        this.transformX = s.x;
+        transformY = s.y;
+        transformZ = s.z;
+    }
+
+    public SimpleVector getLocation(){
+        return new SimpleVector(transformX, transformY, transformZ);
+    }
+
+    public void updateLocation(SimpleVector s){
+        this.transformX += s.x;
+        transformY += s.y;
+        transformZ += s.z;
     }
     //public ArrayList<Vector3> getVertices(){return this.vertices;}
     private int loadTexture(Context context, int resID){

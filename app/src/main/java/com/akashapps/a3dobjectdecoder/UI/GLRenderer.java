@@ -33,6 +33,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     public static final float[] uiViewMatrix = new float[16];
     //public static
     private TouchController controller;
+    private float defaultCamZ = 5f;
     public static Logger logger = Logger.getGlobal();
     public static float SCRWID, SCRHEIGHT, RATIO, screenTop,screenBottom;
     private ObjDecoder cube;
@@ -93,9 +94,9 @@ public class GLRenderer implements GLSurfaceView.Renderer {
       // GLES20.glDepthFunc(GLES20.GL_LESS);
         GLES20.glClearDepthf(1.0f);
 
-        float eyeZ = 5.0f-controller.PINCH;
+        defaultCamZ= defaultCamZ -controller.PINCH;
 
-        Matrix.setLookAtM(mViewMatrix, 0, 0, 0, eyeZ,
+        Matrix.setLookAtM(mViewMatrix, 0, 0, 0, defaultCamZ,
                 0.0f, 0.0f, 0.0f,
                 0f, 1.0f, 0.0f);
         Matrix.multiplyMM(mMVPMatrix, 0, mProjectionMatrix, 0, mViewMatrix, 0);

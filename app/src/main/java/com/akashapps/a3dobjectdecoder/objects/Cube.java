@@ -3,7 +3,7 @@ package com.akashapps.a3dobjectdecoder.objects;
 import android.content.Context;
 import android.content.res.Resources;
 
-public class Cube {
+public class Cube extends SceneObject{
     private float color1[], color2[], color3[];
     private Triangle t1;//= new Triangle(v1,c);
     private Triangle t2;
@@ -132,7 +132,7 @@ public class Cube {
 
     }
 
-    public void draw(float[] mvpMatrix) {
+    public void onDrawFrame(float[] mvpMatrix) {
        front1.draw(mvpMatrix);
        back1.draw(mvpMatrix);
         left1.draw(mvpMatrix);
@@ -192,4 +192,12 @@ public class Cube {
     public void activate(){this.isActive = true;}
     public void deactivate(){this.isActive = false;}
     public boolean isActive(){return this.isActive;}
+
+    public void setMainLight(SimpleVector l){
+    }
+    public SimpleVector getLocation(){
+     return null;
+    }
+
+
 }
