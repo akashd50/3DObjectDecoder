@@ -70,9 +70,13 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         //Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 3, 10);
         Matrix.orthoM(uiProjectionMatrix, 0, -ratio, ratio, -1, 1, 1, 10);
         //android.opengl.Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 1, 10);
-        GLES20.glEnable( GLES20.GL_DEPTH_TEST );
-        GLES20.glDepthFunc( GLES20.GL_LESS );
-        GLES20.glDepthMask( true );
+       GLES20.glEnable( GLES20.GL_DEPTH_TEST );
+        GLES20.glDepthFunc( GLES20.GL_LEQUAL);
+        //GLES20.glDepthMask( true );
+
+        GLES20.glEnable( GLES20.GL_BLEND);
+        GLES20.glBlendFunc( GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA );
+
         GLES20.glEnable(GLES20.GL_CULL_FACE);
         GLES20.glCullFace(GLES20.GL_FRONT_FACE);
 

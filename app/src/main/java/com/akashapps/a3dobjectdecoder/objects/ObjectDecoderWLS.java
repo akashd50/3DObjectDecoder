@@ -335,8 +335,7 @@ public class ObjectDecoderWLS extends SceneObject{
         GLES20.glVertexAttribPointer(aTextureHandle,2,GLES20.GL_FLOAT,false,8,mTextureBuffer);
         GLES20.glEnableVertexAttribArray(aTextureHandle);
 
-        //GLES20.glEnable( GLES20.GL_BLEND);
-        //GLES20.glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+
         GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, vertexCount);
         //GLES20.glDrawArrays(GLES20.GL_LINES);
         // Disable vertex array

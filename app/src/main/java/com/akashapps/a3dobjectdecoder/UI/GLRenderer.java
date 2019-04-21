@@ -75,7 +75,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         //cube = new ObjDecoder(R.raw.android_experiment, R.drawable.rickuii, context);
         //cube.scale(-0.5f,-0.5f);
         cube2 = new ObjectDecoderWLS(R.raw.android_experiment, R.drawable.rickuii, context);
-
+        cube2.setMainLight(new SimpleVector(0f,0.5f,0.5f));
         System.out.println("================================== L|B|H+======"+cube2.getLength()+
                 "=="+cube2.getBreadth()+"=="+cube2.getHeight());
 
