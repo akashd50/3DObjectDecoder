@@ -9,7 +9,10 @@ import android.view.MotionEvent;
 import com.akashapps.a3dobjectdecoder.R;
 import com.akashapps.a3dobjectdecoder.Utilities.TextDecoder;
 import com.akashapps.a3dobjectdecoder.Utilities.Utilities;
+import com.akashapps.a3dobjectdecoder.objects.Animation3D;
 import com.akashapps.a3dobjectdecoder.objects.Camera;
+import com.akashapps.a3dobjectdecoder.objects.Object3D;
+import com.akashapps.a3dobjectdecoder.objects.Person;
 import com.akashapps.a3dobjectdecoder.objects.Scene;
 import com.akashapps.a3dobjectdecoder.logic.TouchController;
 import com.akashapps.a3dobjectdecoder.objects.DPad;
@@ -39,10 +42,11 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
     private static long currentFrameTime, previousFrameTime;
     private DPad dPad;
     private Map map;
-    private ObjectDecoderWLS block, mainCharacter;
+    //private ObjectDecoderWLS block, mainCharacter;
     private Scene firstScene;
     private Camera camera;
-
+    private Animation3D character;
+    private Person mainCharacter;
     public MainGameRenderer(Context ctx, TouchController controller) {
         this.context = ctx;
         this.controller = controller;
@@ -69,7 +73,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         Matrix.perspectiveM(mProjectionMatrix, 0, 45f, ratio, 1, 100);
         //Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 3, 10);
         Matrix.orthoM(uiProjectionMatrix, 0, -ratio, ratio, -1, 1, 1, 10);
-        //android.opengl.Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 1, 10);
+        //Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 1, 10);
        GLES20.glEnable( GLES20.GL_DEPTH_TEST );
         GLES20.glDepthFunc( GLES20.GL_LEQUAL);
         //GLES20.glDepthMask( true );
@@ -100,7 +104,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         //map = new Map("Sucks",context);
         float tx = -2f;
         for(int i = 0;i<20;i++) {
-            block = new ObjectDecoderWLS(R.raw.sidewalk_block, R.drawable.side_block, context);
+            ObjectDecoderWLS block = new ObjectDecoderWLS(R.raw.sidewalk_block, R.drawable.side_block, context);
             block.transformY = -2f;
             block.transformX = tx;
             block.setLength(2f);
@@ -108,14 +112,35 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             firstScene.addSceneObject(block);
         }
 
-        mainCharacter = new ObjectDecoderWLS(R.raw.android_experiment,R.drawable.rickuii,context);
+        /*character = new Animation3D(10,R.drawable.rickuii);
+        character.addObjectFrame(R.raw.char_model_v_i_000001,context);
+        character.addObjectFrame(R.raw.char_model_v_i_000004,context);
+        character.addObjectFrame(R.raw.char_model_v_i_000008,context);
+        character.addObjectFrame(R.raw.char_model_v_i_000012,context);
+        character.addObjectFrame(R.raw.char_model_v_i_000016,context);
+        character.addObjectFrame(R.raw.char_model_v_i_000020,context);
+        character.addObjectFrame(R.raw.char_model_v_i_000024,context);
+        character.addObjectFrame(R.raw.char_model_v_i_000028,context);
+        character.addObjectFrame(R.raw.char_model_v_i_000032,context);
+        character.addObjectFrame(R.raw.char_model_v_i_000036,context);
+
+        firstScene.addSceneObject(character);*/
+        /*mainCharacter = new ObjectDecoderWLS(R.raw.android_experiment,R.drawable.rickuii,context);
         mainCharacter.setLength(3f);
         mainCharacter.setBredth(3f);
         mainCharacter.setHeight(1f);
         mainCharacter.setLocation(new SimpleVector(0f,0.2f,0f));
         //mainCharacter.rotateY = 90f;
         camera.follow(mainCharacter);
+        firstScene.addSceneObject(mainCharacter);*/
+        mainCharacter = new Person(R.raw.char_model_v_i_000001, R.drawable.rickuii, context);
 
+        /*o3d.setLength(0.7f);
+        o3d.setBredth(0.4f);
+        o3d.setHeight(2f);*/
+        mainCharacter.getMain().setLocation(new SimpleVector(0f,0.2f,0f));
+
+        camera.follow(mainCharacter);
         firstScene.addSceneObject(mainCharacter);
         firstScene.setSceneLight(new SimpleVector(0.5f,0.5f,0.5f));
     }
@@ -139,8 +164,8 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
 
 
        firstScene.onDrawFrame(mainMatrix);
-
-        if(dPad.activeDpadX > 0){
+        //o3d.rotateY(0.5f);
+      /*  if(dPad.activeDpadX > 0){
             mainCharacter.rotateZ -= 0.1f;
         }else if(dPad.activeDpadX<0){
             mainCharacter.rotateZ += 0.1f;
@@ -150,9 +175,10 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             }else if(mainCharacter.rotateZ<0){
                 mainCharacter.rotateZ += 0.1f;
             }
-        }
+        }*/
 
-        mainCharacter.updateLocation(new SimpleVector(dPad.activeDpadX, 0f, 0f));
+        //mainCharacter.updateLocation(new SimpleVector(dPad.activeDpadX, 0f, 0f));
+        mainCharacter.setHorizontalAcc(dPad.activeDpadX);
 
         currentFrameTime = System.nanoTime();
         long tTime = currentFrameTime - previousFrameTime;

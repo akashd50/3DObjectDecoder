@@ -52,12 +52,12 @@ public class Object3D extends SceneObject {
     private String TPVERTEXSHADER =
                     "uniform mat4 u_Matrix;" +
                     "attribute vec4 a_Position;" +
-                    "uniform vec3 u_lightCol"+
-                    "varying vec3 v_lightCol"+
-                    "uniform float u_opacity"+
-                    "varying float v_opacity"+
-                    "uniform float u_ambient"+
-                    "varying float v_ambient"+
+                    "uniform vec3 u_lightCol;"+
+                    "varying vec3 v_lightCol;"+
+                    "uniform float u_opacity;"+
+                    "varying float v_opacity;"+
+                    "uniform float u_ambient;"+
+                    "varying float v_ambient;"+
                     "varying vec3 v_Normal;"+
                     "uniform vec3 u_VectorToLight;"+
                     "varying vec3 v_VectorToLight;"+
@@ -67,8 +67,8 @@ public class Object3D extends SceneObject {
                     "void main()" +
                     "{" +
                         "v_opacity = u_opacity;"+
-                        "v_ambient = u_ambient"+
-                        "v_lightCol = u_lightCol"+
+                        "v_ambient = u_ambient;"+
+                        "v_lightCol = u_lightCol;"+
                         "v_VectorToLight = u_VectorToLight;"+
                         "v_Normal = a_Normal;"+
                         "v_TextureCoordinates = a_TextureCoordinates;" +
@@ -78,9 +78,9 @@ public class Object3D extends SceneObject {
     private String TPFRAGMENTSHADER =
                     "precision mediump float;" +
                     "varying vec3 v_Normal;"+
-                    "varying vec3 v_lightCol"+
-                    "varying float v_opacity"+
-                    "varying float v_ambient"+
+                    "varying vec3 v_lightCol;"+
+                    "varying float v_opacity;"+
+                    "varying float v_ambient;"+
                     "uniform sampler2D u_TextureUnit;" +
                     "varying vec2 v_TextureCoordinates;" +
                     "varying vec3 v_VectorToLight;"+
@@ -95,6 +95,13 @@ public class Object3D extends SceneObject {
     private Context context;
     public Object3D(int fileId, int texId, Context context){
         //lAngleX = 0f;lAngleY=0f;lAngleZ=1f;
+        location = new SimpleVector(0f,0f,0f);
+        rotation = new SimpleVector(0f,0f,0f);
+        lightColor = new SimpleVector(1f,1f,1f);
+        scale = new SimpleVector(1f,1f,1f);
+        textureOpacity = 1f;
+        ambientLightVal = 0.2f;
+
         mainlight = new SimpleVector();
         NegX = new SimpleVector(0f,0f,0f);
         NegY = new SimpleVector(0f,0f,0f);
@@ -102,8 +109,6 @@ public class Object3D extends SceneObject {
         PosX = new SimpleVector(0f,0f,0f);
         PosY = new SimpleVector(0f,0f,0f);
         PosZ = new SimpleVector(0f,0f,0f);
-
-        this.scale(1f,1f,1f);
 
         this.id = fileId;
         this.context = context;
@@ -453,6 +458,30 @@ public class Object3D extends SceneObject {
         //  }
     }
 
+    public SimpleVector getPosZ() {
+        return PosZ;
+    }
+
+    public SimpleVector getPosY() {
+        return PosY;
+    }
+
+    public SimpleVector getPosX() {
+        return PosX;
+    }
+
+    public SimpleVector getNegY() {
+        return NegY;
+    }
+
+    public SimpleVector getNegX() {
+        return NegX;
+    }
+
+    public SimpleVector getNegZ() {
+        return NegZ;
+    }
+
     public float getLength(){
         return PosX.x - NegX.x;
     }
@@ -464,7 +493,7 @@ public class Object3D extends SceneObject {
     public float getHeight(){
         return PosY.y - NegY.y;
     }
-
+    public SimpleVector getRotation(){return rotation;}
     public void setLength(float x){
         scale.x = x/this.getLength();
     }
