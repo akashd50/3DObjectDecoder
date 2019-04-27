@@ -285,7 +285,6 @@ public class ObjectDecoderWLS extends SceneObject{
     }
 
 
-
     public void drawHelper(float[] mMVPMatrix){
         GLES20.glUseProgram(mProgram);
         // get handle to shape's transformation matrix
@@ -363,6 +362,13 @@ public class ObjectDecoderWLS extends SceneObject{
 
         Matrix.multiplyMM(scratch,0,mMVPMatrix,0, temp,0);
         drawHelper(scratch);
+    }
+
+    public void setCollider(Collider c){
+
+    }
+    public Collider getCollider(){
+        return null;
     }
 
 
@@ -471,23 +477,28 @@ public class ObjectDecoderWLS extends SceneObject{
         //  }
     }
 
-    public SimpleVector getNegX(){return NegX;}
-
-    public SimpleVector getNegY() {
-        return NegY;
-    }
-    public SimpleVector getNegZ(){return NegZ;}
-
-    public SimpleVector getPosX() {
-        return PosX;
+    public SimpleVector getFront() {
+        return PosZ;
     }
 
-    public SimpleVector getPosY() {
+    public SimpleVector getUp() {
         return PosY;
     }
 
-    public SimpleVector getPosZ() {
-        return PosZ;
+    public SimpleVector getRight() {
+        return PosX;
+    }
+
+    public SimpleVector getDown() {
+        return NegY;
+    }
+
+    public SimpleVector getLeft() {
+        return NegX;
+    }
+
+    public SimpleVector getBack() {
+        return NegZ;
     }
 
     public float getLength(){

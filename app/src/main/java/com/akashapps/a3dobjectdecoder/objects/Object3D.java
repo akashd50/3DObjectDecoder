@@ -41,14 +41,14 @@ public class Object3D extends SceneObject {
     private int mTextureId;
     //public float rotateX,rotateY,rotateZ, defRotX, defRotY, defRotZ, lAngleX, lAngleY, lAngleZ;
    // public float transformY,transformX,transformZ, scaleX,scaleY, scaleZ;
-    private float defTransX,defTransY, defTransZ, ambientLightVal, textureOpacity;
+    private float defTransX,defTransY, defTransZ, ambientLightVal, textureOpacity, originalLightAngleY;
 
     private SimpleVector NegX, PosX, NegY, PosY, NegZ, PosZ, mainlight, lightColor, location, rotation, scale;
     private static final String LIGHT_COLOR = "u_lightCol";
     private static final String AMBIENT_LIGHT = "u_ambient";
     private static final String OPACITY = "u_opacity";
     private static final String LiGHT_LOCATION = "u_VectorToLight";
-
+    private Collider collider;
     private String TPVERTEXSHADER =
                     "uniform mat4 u_Matrix;" +
                     "attribute vec4 a_Position;" +
@@ -70,7 +70,9 @@ public class Object3D extends SceneObject {
                         "v_ambient = u_ambient;"+
                         "v_lightCol = u_lightCol;"+
                         "v_VectorToLight = u_VectorToLight;"+
-                        "v_Normal = a_Normal;"+
+
+                        "v_Normal = normalize((u_Matrix * vec4(a_Normal,0.0)).xyz);"+
+
                         "v_TextureCoordinates = a_TextureCoordinates;" +
                         "gl_Position = u_Matrix * a_Position;" +
                     "}";
@@ -87,9 +89,20 @@ public class Object3D extends SceneObject {
                     "void main()" +
                     "{" +
                         "vec3 scaledNormal = v_Normal;"+
-                        "float diffuse = max(dot(scaledNormal, v_VectorToLight), v_ambient);" +
+                        "vec3 inverseEye = normalize(vec3(0.0,0.0,-1.0));"+
+                        "vec3 specularLight = vec3(1.0,1.0,1.0);"+
+                        "vec3 vertexSRC = vec3(1.0,1.0,1.0);"+
+                        "float shininess = 2.0;"+
+
+                        "vec3 inv_light = normalize(v_VectorToLight);"+
+
+                        //"vec3 lightReflectionDirection = reflect(vec3(0) - inv_light, scaledNormal);"+
+                        //"vec3 normalDotRef = max(0.0, dot(inverseEye, lightReflectionDirection));"+
+
+                        "float diffuse = max(dot(scaledNormal, inv_light), v_ambient);" +
                         "vec3 f_color = v_lightCol * diffuse;"+
                         "gl_FragColor = vec4(f_color,1.0)*texture2D(u_TextureUnit, v_TextureCoordinates);" +
+                            /*normalDotRef*normalDotRef*vertexSRC*specularLight +*/
                     "}";
 
     private Context context;
@@ -331,10 +344,10 @@ public class Object3D extends SceneObject {
 
         Matrix.setIdentityM(temp,0);
         Matrix.translateM(temp,0,location.x,location.y,location.z);
-        Matrix.scaleM(temp,0,scale.x, scale.y, scale.z);
         Matrix.rotateM(temp, 0, rotation.x, 1, 0, 0);
         Matrix.rotateM(temp, 0, rotation.y, 0, 1, 0);
         Matrix.rotateM(temp, 0, rotation.z, 0, 0, 1);
+        Matrix.scaleM(temp,0,scale.x, scale.y, scale.z);
 
         Matrix.multiplyMM(scratch,0,mMVPMatrix,0, temp,0);
         drawHelper(scratch);
@@ -355,6 +368,27 @@ public class Object3D extends SceneObject {
         mainlight.x = l.x;
         mainlight.y = l.y;
         mainlight.z = l.z;
+
+        originalLightAngleY = (float)Math.atan(mainlight.x/mainlight.z);
+    }
+
+    public void setCollider(Collider c){
+        this.collider = c;
+        if(collider instanceof BoxCollider){
+            ((BoxCollider) collider).setBack(NegZ.z);
+            ((BoxCollider) collider).setFront(PosZ.z);
+            ((BoxCollider) collider).setDown(NegY.y);
+            ((BoxCollider) collider).setUp(PosY.y);
+            ((BoxCollider) collider).setLeft(NegX.x);
+            ((BoxCollider) collider).setRight(PosX.x);
+            collider.setLocation(location);
+        }else if(collider instanceof SphereCollider){
+
+        }
+    }
+
+    public Collider getCollider(){
+        return collider;
     }
 
     public void setTextureOpacity(float o){
@@ -377,6 +411,9 @@ public class Object3D extends SceneObject {
             angle = angle - temp;
             rotation.y = angle;
         }
+
+       // mainlight.x = (float)Math.sin(originalLightAngleY-rotation.y*Math.PI/180);
+       // mainlight.y = (float)Math.cos(originalLightAngleY-rotation.y*Math.PI/180);
     }
 
     public void rotateZ(float angle){
@@ -404,6 +441,17 @@ public class Object3D extends SceneObject {
         location.x = s.x;
         location.y = s.y;
         location.z = s.z;
+
+        /*PosX.x += s.x;
+        NegX.x += s.x;
+        PosY.y += s.y;
+        NegY.y += s.y;
+        PosZ.z += s.z;
+        NegZ.z += s.z;
+        */
+        if(collider!=null) {
+            collider.setLocation(location);
+        }
     }
 
     public SimpleVector getLocation(){
@@ -414,6 +462,17 @@ public class Object3D extends SceneObject {
         location.x += s.x;
         location.y += s.y;
         location.z += s.z;
+
+       /* PosX.x += s.x;
+        NegX.x += s.x;
+        PosY.y += s.y;
+        NegY.y += s.y;
+        PosZ.z += s.z;
+        NegZ.z += s.z;
+        */
+        if(collider!=null) {
+            collider.setLocation(location);
+        }
     }
     //public ArrayList<Vector3> getVertices(){return this.vertices;}
     private int loadTexture(Context context, int resID){
@@ -458,29 +517,29 @@ public class Object3D extends SceneObject {
         //  }
     }
 
-    public SimpleVector getPosZ() {
+   /* public SimpleVector getFront() {
         return PosZ;
     }
 
-    public SimpleVector getPosY() {
+    public SimpleVector getUp() {
         return PosY;
     }
 
-    public SimpleVector getPosX() {
+    public SimpleVector getRight() {
         return PosX;
     }
 
-    public SimpleVector getNegY() {
+    public SimpleVector getDown() {
         return NegY;
     }
 
-    public SimpleVector getNegX() {
+    public SimpleVector getLeft() {
         return NegX;
     }
 
-    public SimpleVector getNegZ() {
+    public SimpleVector getBack() {
         return NegZ;
-    }
+    }*/
 
     public float getLength(){
         return PosX.x - NegX.x;
@@ -494,15 +553,47 @@ public class Object3D extends SceneObject {
         return PosY.y - NegY.y;
     }
     public SimpleVector getRotation(){return rotation;}
+
     public void setLength(float x){
         scale.x = x/this.getLength();
+        PosX.x *= scale.x;
+        NegX.x *= scale.x;
+        if(collider!=null) {
+            if (collider instanceof BoxCollider) {
+                ((BoxCollider) collider).setLeft(NegX.x);
+                ((BoxCollider) collider).setRight(PosX.x);
+            } else if (collider instanceof SphereCollider) {
+
+            }
+        }
     }
 
     public void setBredth(float z){
         scale.z = z/this.getBreadth();
+        PosZ.z *= scale.z;
+        NegZ.z *= scale.z;
+        if(collider!=null) {
+
+            if (collider instanceof BoxCollider) {
+                ((BoxCollider) collider).setFront(PosZ.z);
+                ((BoxCollider) collider).setBack(NegZ.z);
+            } else if (collider instanceof SphereCollider) {
+
+            }
+        }
     }
 
     public void setHeight(float y){
         scale.y = y/this.getHeight();
+        PosY.y *= scale.y;
+        NegY.y *= scale.y;
+        if(collider!=null) {
+            if (collider instanceof BoxCollider) {
+                ((BoxCollider) collider).setUp(PosY.y);
+                ((BoxCollider) collider).setDown(NegY.y);
+            } else if (collider instanceof SphereCollider) {
+
+            }
+        }
     }
 }

@@ -19,6 +19,8 @@ public class MainGameActivity extends Activity {
         context = this;
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         glRendererView = new MainGameSurfaceView(getApplication());
+
+
         setContentView(glRendererView);
     }
 
@@ -36,6 +38,7 @@ public class MainGameActivity extends Activity {
 
     @Override
     protected void onStop() {
+        glRendererView.onStop();
         super.onStop();
     }
 

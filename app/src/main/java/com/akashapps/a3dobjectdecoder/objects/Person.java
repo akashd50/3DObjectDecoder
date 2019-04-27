@@ -24,5 +24,50 @@ public class Person extends SceneObject {
         return main.getLocation();
     }
 
+   /* public SimpleVector getFront() {
+        return main.getFront();
+    }
+
+    public SimpleVector getUp() {
+        return main.getUp();
+    }
+
+    public SimpleVector getRight() {
+        return main.getRight();
+    }
+
+    public SimpleVector getDown() {
+        return main.getDown();
+    }
+
+    public SimpleVector getLeft() {
+        return main.getLeft();
+    }
+
+    public SimpleVector getBack() {
+        return main.getBack();
+    }
+*/
+    public Collider getCollider(){
+        return main.getCollider();
+    }
+
+    public void setCollider(Collider c){
+        main.setCollider(c);
+    }
+
+
+    public float getLength(){
+        return main.getLength();
+    }
+
+    public float getBreadth(){
+        return main.getBreadth();
+    }
+
+    public float getHeight(){
+        return main.getHeight();
+    }
+
     public Object3D getMain(){return main;}
 }

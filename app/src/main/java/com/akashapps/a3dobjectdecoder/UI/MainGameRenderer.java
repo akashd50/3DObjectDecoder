@@ -9,7 +9,10 @@ import android.view.MotionEvent;
 import com.akashapps.a3dobjectdecoder.R;
 import com.akashapps.a3dobjectdecoder.Utilities.TextDecoder;
 import com.akashapps.a3dobjectdecoder.Utilities.Utilities;
+import com.akashapps.a3dobjectdecoder.logic.BoxCollisionListener;
+import com.akashapps.a3dobjectdecoder.logic.CollisionHandler;
 import com.akashapps.a3dobjectdecoder.objects.Animation3D;
+import com.akashapps.a3dobjectdecoder.objects.BoxCollider;
 import com.akashapps.a3dobjectdecoder.objects.Camera;
 import com.akashapps.a3dobjectdecoder.objects.Object3D;
 import com.akashapps.a3dobjectdecoder.objects.Person;
@@ -45,12 +48,19 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
     //private ObjectDecoderWLS block, mainCharacter;
     private Scene firstScene;
     private Camera camera;
-    private Animation3D character;
+    private static float START_Y= 0.0f;
+    private static float START_X = 0f;
+    private static float START_Z = 0f;
+
+    private BoxCollisionListener listener;
+    private CollisionHandler characterGround;
     private Person mainCharacter;
+    private boolean isReady;
     public MainGameRenderer(Context ctx, TouchController controller) {
         this.context = ctx;
         this.controller = controller;
         currentFrameTime = 0;
+        isReady = false;
         previousFrameTime = 0;
     }
 
@@ -70,7 +80,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         camera = new Camera();
         camera.setTouchController(controller);
 
-        Matrix.perspectiveM(mProjectionMatrix, 0, 45f, ratio, 1, 100);
+        Matrix.perspectiveM(mProjectionMatrix, 0, 45f, ratio, 1, 200);
         //Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 3, 10);
         Matrix.orthoM(uiProjectionMatrix, 0, -ratio, ratio, -1, 1, 1, 10);
         //Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 1, 10);
@@ -92,6 +102,8 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         camera.lookAt(new SimpleVector(0f,0f,0f));
         camera.setFollowSpeed(new SimpleVector(0.1f,0f,0f));
         camera.setFollowDelay(new SimpleVector(1.5f,0f,0f));
+
+        isReady = true;
     }
 
     private void initializeUIElements(){
@@ -101,54 +113,93 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
 
     private void initializeGameObjects(){
         firstScene = new Scene();
-        //map = new Map("Sucks",context);
-        float tx = -2f;
+        characterGround = new CollisionHandler();
+        listener = new BoxCollisionListener(characterGround);
+
+        float tx = START_X;
+
         for(int i = 0;i<20;i++) {
-            ObjectDecoderWLS block = new ObjectDecoderWLS(R.raw.sidewalk_block, R.drawable.side_block, context);
-            block.transformY = -2f;
-            block.transformX = tx;
+            Object3D block = new Object3D(R.raw.sidewalk_block, R.drawable.side_block, context);
+            block.setCollider(new BoxCollider());
+
             block.setLength(2f);
+            block.setHeight(0.5f);
+            block.setBredth(4f);
+            block.setLocation(new SimpleVector(tx, START_Y, 0f));
+
+            listener.addCollisionObjects(block);
             tx+=2f;
             firstScene.addSceneObject(block);
         }
 
-        /*character = new Animation3D(10,R.drawable.rickuii);
-        character.addObjectFrame(R.raw.char_model_v_i_000001,context);
-        character.addObjectFrame(R.raw.char_model_v_i_000004,context);
-        character.addObjectFrame(R.raw.char_model_v_i_000008,context);
-        character.addObjectFrame(R.raw.char_model_v_i_000012,context);
-        character.addObjectFrame(R.raw.char_model_v_i_000016,context);
-        character.addObjectFrame(R.raw.char_model_v_i_000020,context);
-        character.addObjectFrame(R.raw.char_model_v_i_000024,context);
-        character.addObjectFrame(R.raw.char_model_v_i_000028,context);
-        character.addObjectFrame(R.raw.char_model_v_i_000032,context);
-        character.addObjectFrame(R.raw.char_model_v_i_000036,context);
+        Object3D house = new Object3D(R.raw.house_i,R.drawable.rickuii, context);
+        house.setLength(7f);
+        house.setHeight(8f);
+        house.setBredth(8f);
+        house.setLocation(new SimpleVector(START_X+7f,START_Y,START_Z-4f-5f));
+        firstScene.addSceneObject(house);
 
-        firstScene.addSceneObject(character);*/
-        /*mainCharacter = new ObjectDecoderWLS(R.raw.android_experiment,R.drawable.rickuii,context);
-        mainCharacter.setLength(3f);
-        mainCharacter.setBredth(3f);
-        mainCharacter.setHeight(1f);
-        mainCharacter.setLocation(new SimpleVector(0f,0.2f,0f));
-        //mainCharacter.rotateY = 90f;
-        camera.follow(mainCharacter);
-        firstScene.addSceneObject(mainCharacter);*/
-        mainCharacter = new Person(R.raw.char_model_v_i_000001, R.drawable.rickuii, context);
+        Object3D skybox= new Object3D(R.raw.skybox_i,R.drawable.sky_t, context);
+        skybox.setLength(100f);
+        skybox.setHeight(100f);
+        skybox.setBredth(100f);
+        skybox.setLocation(new SimpleVector(START_X+7f,START_Y,START_Z-10f));
+        firstScene.addSceneObject(skybox);
 
-        /*o3d.setLength(0.7f);
-        o3d.setBredth(0.4f);
-        o3d.setHeight(2f);*/
-        mainCharacter.getMain().setLocation(new SimpleVector(0f,0.2f,0f));
+        tx = START_X+5f;
+        for(int i=0;i<5;i++) {
+            Object3D ground = new Object3D(R.raw.ground_i,R.drawable.rickuii, context);
+            ground.setLength(10f);
+            ground.setBredth(13f);
+            ground.setLocation(new SimpleVector(tx,START_Y,-7f));
+            firstScene.addSceneObject(ground);
+            tx+=10f;
+        }
 
+        tx = START_X+5f;
+        for(int i=0;i<5;i++) {
+            Object3D fence = new Object3D(R.raw.fence_i,R.drawable.wood_t, context);
+            fence.setLength(10f);
+            fence.setBredth(0.1f);
+            fence.setLocation(new SimpleVector(tx,START_Y,-14f));
+            firstScene.addSceneObject(fence);
+            tx+=10f;
+        }
+
+        tx = START_X+5f;
+        for(int i=0;i<5;i++) {
+            Object3D road = new Object3D(R.raw.road_i, R.drawable.rickuii, context);
+            road.setLength(10f);
+            road.setBredth(10f);
+            road.setLocation(new SimpleVector(tx, START_Y, 7f));
+            firstScene.addSceneObject(road);
+            tx+=10f;
+        }
+
+        mainCharacter = new Person(R.raw.char_model_v_ii, R.drawable.rickuii, context);
+        mainCharacter.setCollider(new BoxCollider());
+
+        mainCharacter.setVerticalVel(-0.004f);
+        mainCharacter.getMain().setLength(0.5f);
+        mainCharacter.getMain().setBredth(0.3f);
+        mainCharacter.getMain().setHeight(1.2f);
+
+        listener.setMain(mainCharacter);
+        listener.startListener();
+        mainCharacter.getMain().setLocation(new SimpleVector(START_X+2f,2f,0f));
+        mainCharacter.setGravity(true);
         camera.follow(mainCharacter);
         firstScene.addSceneObject(mainCharacter);
-        firstScene.setSceneLight(new SimpleVector(0.5f,0.5f,0.5f));
+        firstScene.setSceneLight(new SimpleVector(0.5f,0.4f,0.6f));
+
+        mainCharacter.getMain().rotateY(90);
+
     }
 
     @Override
     public void onDrawFrame(GL10 gl) {
         previousFrameTime = System.nanoTime();
-        GLES20.glClearColor(((float)156/255), (float)187/255, (float)237/255,1f);
+        GLES20.glClearColor(((float)0/255), (float)0/255, (float)0/255,1f);
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
         GLES20.glClearDepthf(1.0f);
 
@@ -178,7 +229,24 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         }*/
 
         //mainCharacter.updateLocation(new SimpleVector(dPad.activeDpadX, 0f, 0f));
-        mainCharacter.setHorizontalAcc(dPad.activeDpadX);
+        //mainCharacter.getMain().rotateZ(0.5f);
+        if(characterGround.isCOLLISION_DETECTED()){
+            mainCharacter.setVerticalVel(0f);
+            mainCharacter.updateHorizontalVel(mainCharacter.DEFAULT_HORIZONTAL_DRAG);
+            characterGround.resetCOLLISION_DETECTED();
+        }
+
+        if(!characterGround.isSTILL_COLLIDING()){
+            mainCharacter.updateVerticalVel(mainCharacter.DEFAULT_GRAVITY_UPDATE);
+        }
+
+
+        if(dPad.isClicked()){
+            if(characterGround.isSTILL_COLLIDING()) {
+                //mainCharacter.setVerticalVel(0.1f);
+                mainCharacter.setHorizontalVel(dPad.activeDpadX);
+            }
+        }
 
         currentFrameTime = System.nanoTime();
         long tTime = currentFrameTime - previousFrameTime;
@@ -206,6 +274,15 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             temp.draw(mMVPMatrix);
             nl+=0.1f;
         }
+    }
+
+    public void onStop(){
+        listener.stop();
+    }
+
+
+    public boolean isReady(){
+        return isReady;
     }
 
     public void onTouchDown(MotionEvent event){

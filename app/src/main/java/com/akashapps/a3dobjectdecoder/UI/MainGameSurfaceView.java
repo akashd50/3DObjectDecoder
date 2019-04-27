@@ -14,7 +14,7 @@ public class MainGameSurfaceView extends GLSurfaceView {
         super(context);
 
         touchController = new TouchController();
-        this.setEGLContextClientVersion(2);
+        this.setEGLContextClientVersion(3);
         this.setEGLConfigChooser(8,8,8,8,24,0);
         int uiOptions = this.SYSTEM_UI_FLAG_FULLSCREEN;
         this.setSystemUiVisibility(uiOptions);
@@ -29,9 +29,17 @@ public class MainGameSurfaceView extends GLSurfaceView {
 
     }
 
+    public boolean isReady(){
+        return mRenderer.isReady();
+    }
+
     @Override
     public void onResume() {
 
+    }
+
+    public void onStop(){
+        mRenderer.onStop();
     }
 
     @Override

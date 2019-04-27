@@ -6,7 +6,7 @@ import com.akashapps.a3dobjectdecoder.objects.Object3D;
 import com.akashapps.a3dobjectdecoder.objects.SceneObject;
 import com.akashapps.a3dobjectdecoder.objects.SimpleVector;
 
-public class Animation3D extends SceneObject{
+public class Animation3D{
     private int animationFrames;
     private SceneObject[] animationObjects;
     private int textureID;

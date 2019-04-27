@@ -3,7 +3,7 @@ package com.akashapps.a3dobjectdecoder.objects;
 import android.content.Context;
 import android.content.res.Resources;
 
-public class Cube extends SceneObject{
+public class Cube {
     private float color1[], color2[], color3[];
     private Triangle t1;//= new Triangle(v1,c);
     private Triangle t2;
