@@ -56,6 +56,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
     private CollisionHandler characterGround;
     private Person mainCharacter;
     private boolean isReady;
+    private Animation3D sample;
     public MainGameRenderer(Context ctx, TouchController controller) {
         this.context = ctx;
         this.controller = controller;
@@ -176,7 +177,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             tx+=10f;
         }
 
-        mainCharacter = new Person(R.raw.char_model_v_ii, R.drawable.rickuii, context);
+        /*mainCharacter = new Person(R.raw.char_model_v_ii, R.drawable.rickuii, context);
         mainCharacter.setCollider(new BoxCollider());
 
         mainCharacter.setVerticalVel(-0.004f);
@@ -193,7 +194,54 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         firstScene.setSceneLight(new SimpleVector(0.5f,0.4f,0.6f));
 
         mainCharacter.getMain().rotateY(90);
+*/
+        sample = new Animation3D(50,R.raw.anim_sample_000001, R.drawable.rickuii,context);
+        sample.addFrame(R.raw.anim_sample_000002);sample.addFrame(R.raw.anim_sample_000003);
+        sample.addFrame(R.raw.anim_sample_000004);sample.addFrame(R.raw.anim_sample_000005);
+        sample.addFrame(R.raw.anim_sample_000006);sample.addFrame(R.raw.anim_sample_000007);
+        sample.addFrame(R.raw.anim_sample_000008);sample.addFrame(R.raw.anim_sample_000009);
+        sample.addFrame(R.raw.anim_sample_000010);sample.addFrame(R.raw.anim_sample_000011);
+        sample.addFrame(R.raw.anim_sample_000012);sample.addFrame(R.raw.anim_sample_000013);
+        sample.addFrame(R.raw.anim_sample_000014);sample.addFrame(R.raw.anim_sample_000015);
+        sample.addFrame(R.raw.anim_sample_000016);sample.addFrame(R.raw.anim_sample_000017);
+        sample.addFrame(R.raw.anim_sample_000018);sample.addFrame(R.raw.anim_sample_000019);
+        sample.addFrame(R.raw.anim_sample_000020);sample.addFrame(R.raw.anim_sample_000021);
+        sample.addFrame(R.raw.anim_sample_000022);sample.addFrame(R.raw.anim_sample_000023);
+        sample.addFrame(R.raw.anim_sample_000024);sample.addFrame(R.raw.anim_sample_000025);
+        sample.addFrame(R.raw.anim_sample_000026);sample.addFrame(R.raw.anim_sample_000027);
+        sample.addFrame(R.raw.anim_sample_000028);sample.addFrame(R.raw.anim_sample_000029);
+        sample.addFrame(R.raw.anim_sample_000030);sample.addFrame(R.raw.anim_sample_000031);
+        sample.addFrame(R.raw.anim_sample_000032);sample.addFrame(R.raw.anim_sample_000033);
+        sample.addFrame(R.raw.anim_sample_000034);sample.addFrame(R.raw.anim_sample_000035);
+        sample.addFrame(R.raw.anim_sample_000036);sample.addFrame(R.raw.anim_sample_000037);
+        sample.addFrame(R.raw.anim_sample_000038);sample.addFrame(R.raw.anim_sample_000039);
+        sample.addFrame(R.raw.anim_sample_000040);sample.addFrame(R.raw.anim_sample_000041);
+        sample.addFrame(R.raw.anim_sample_000042);sample.addFrame(R.raw.anim_sample_000043);
+        sample.addFrame(R.raw.anim_sample_000044);sample.addFrame(R.raw.anim_sample_000045);
+        sample.addFrame(R.raw.anim_sample_000046);sample.addFrame(R.raw.anim_sample_000047);
+        sample.addFrame(R.raw.anim_sample_000048);sample.addFrame(R.raw.anim_sample_000049);
+        sample.addFrame(R.raw.anim_sample_000050);
 
+        sample.setCollider(new BoxCollider());
+        sample.setVerticalVel(-0.004f);
+        sample.setLength(0.5f);
+        sample.setBredth(0.3f);
+        sample.setHeight(1.2f);
+
+        //sample.setMainLight(new SimpleVector(0.5f,0.4f,0.6f));
+        //sample.setLocation(new SimpleVector(0f,0f,0f));
+
+        listener.setMain(sample);
+        listener.startListener();
+        sample.setLocation(new SimpleVector(START_X+2f,2f,0f));
+        sample.setGravity(true);
+        camera.follow(sample);
+
+        //firstScene.addSceneObject(sample);
+        firstScene.setSceneLight(new SimpleVector(0.5f,0.4f,0.6f));
+
+        sample.setMainLight(new SimpleVector(0.7f,0.7f,0.7f));
+        //sample.getMain().rotateY(90);
     }
 
     @Override
@@ -214,7 +262,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         customUIDrawing();
 
 
-       firstScene.onDrawFrame(mainMatrix);
+
         //o3d.rotateY(0.5f);
       /*  if(dPad.activeDpadX > 0){
             mainCharacter.rotateZ -= 0.1f;
@@ -231,22 +279,37 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         //mainCharacter.updateLocation(new SimpleVector(dPad.activeDpadX, 0f, 0f));
         //mainCharacter.getMain().rotateZ(0.5f);
         if(characterGround.isCOLLISION_DETECTED()){
-            mainCharacter.setVerticalVel(0f);
-            mainCharacter.updateHorizontalVel(mainCharacter.DEFAULT_HORIZONTAL_DRAG);
+            /*mainCharacter.setVerticalVel(0f);
+            mainCharacter.updateHorizontalVel(mainCharacter.DEFAULT_HORIZONTAL_DRAG);*/
+            sample.setVerticalVel(0f);
+            sample.updateHorizontalVel(mainCharacter.DEFAULT_HORIZONTAL_DRAG);
             characterGround.resetCOLLISION_DETECTED();
         }
 
         if(!characterGround.isSTILL_COLLIDING()){
-            mainCharacter.updateVerticalVel(mainCharacter.DEFAULT_GRAVITY_UPDATE);
+            /*mainCharacter.updateVerticalVel(mainCharacter.DEFAULT_GRAVITY_UPDATE);*/
+            sample.updateVerticalVel(mainCharacter.DEFAULT_GRAVITY_UPDATE);
         }
 
 
         if(dPad.isClicked()){
             if(characterGround.isSTILL_COLLIDING()) {
                 //mainCharacter.setVerticalVel(0.1f);
-                mainCharacter.setHorizontalVel(dPad.activeDpadX);
+                /*mainCharacter.setHorizontalVel(dPad.activeDpadX);*/
+                if(dPad.activeDpadX>0){
+                    sample.getMain().setRotation(new SimpleVector(0f,90f,0f));
+                }else{
+                    sample.getMain().setRotation(new SimpleVector(0f,-90f,0f));
+                }
+                sample.setHorizontalVel(dPad.activeDpadX*0.50f);
+                sample.animate(mainMatrix);
+
             }
+        }else{
+            sample.onDrawFrame(mainMatrix);
         }
+
+        firstScene.onDrawFrame(mainMatrix);
 
         currentFrameTime = System.nanoTime();
         long tTime = currentFrameTime - previousFrameTime;

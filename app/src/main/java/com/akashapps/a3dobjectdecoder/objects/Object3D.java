@@ -168,6 +168,37 @@ public class Object3D extends SceneObject {
         generateProgram();
         loadTexture(context,texId);
     }
+    public ArrayList<Config> getConfiguration(){
+        return drawConfig;
+    }
+
+    public void resetVertexBufferTD(){
+        vertexBuffer.clear();
+        vertexBuffer.put(verticesA);
+        vertexBuffer.position(0);
+    }
+    public void updateVertexBuffer(float[] vertices){
+        vertexBuffer.clear();
+        vertexBuffer.put(vertices);
+        vertexBuffer.position(0);
+    }
+    public void resetNormalBufferTD(){
+        normalBuffer.clear();
+        normalBuffer.put(normalsA);
+        normalBuffer.position(0);
+    }
+    public void updateNormalBuffer(float[] normals){
+        normalBuffer.clear();
+        normalBuffer.put(normals);
+        normalBuffer.position(0);
+    }
+
+    public void setVertexBuffer(FloatBuffer fb){
+        vertexBuffer = fb;
+    }
+    public void setNormalBuffer(FloatBuffer fb){
+        normalBuffer = fb;
+    }
 
     private void reorganizeData(){
         int arrayCounter = 0;
@@ -214,6 +245,7 @@ public class Object3D extends SceneObject {
         }
 
     }
+
 
     private void readFile(BufferedReader reader){
         String temp = "";
@@ -581,6 +613,10 @@ public class Object3D extends SceneObject {
 
             }
         }
+    }
+
+    public void setRotation(SimpleVector r){
+        rotation.x = r.x;rotation.y = r.y;rotation.z =  r.z;
     }
 
     public void setHeight(float y){
