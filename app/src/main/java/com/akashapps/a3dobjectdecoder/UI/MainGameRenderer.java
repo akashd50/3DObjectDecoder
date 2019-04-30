@@ -24,6 +24,11 @@ import com.akashapps.a3dobjectdecoder.objects.ObjectDecoderWLS;
 import com.akashapps.a3dobjectdecoder.objects.SimpleVector;
 import com.akashapps.a3dobjectdecoder.objects.TexturedPlane;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
@@ -85,8 +90,8 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         //Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 3, 10);
         Matrix.orthoM(uiProjectionMatrix, 0, -ratio, ratio, -1, 1, 1, 10);
         //Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 1, 10);
-       GLES20.glEnable( GLES20.GL_DEPTH_TEST );
-        GLES20.glDepthFunc( GLES20.GL_LEQUAL);
+        GLES20.glEnable( GLES20.GL_DEPTH_TEST );
+        // GLES20.glDepthFunc( GLES20.GL_LEQUAL);
         //GLES20.glDepthMask( true );
 
         GLES20.glEnable( GLES20.GL_BLEND);
@@ -103,8 +108,8 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         camera.lookAt(new SimpleVector(0f,0f,0f));
         camera.setFollowSpeed(new SimpleVector(0.1f,0f,0f));
         camera.setFollowDelay(new SimpleVector(1.5f,0f,0f));
-
         isReady = true;
+
     }
 
     private void initializeUIElements(){
@@ -195,6 +200,17 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
 
         mainCharacter.getMain().rotateY(90);
 */
+      /*  try {
+            InputStream ir = context.getResources().getAssets().open("/res/anim_punch/anim_sample_000001.obj");
+            BufferedReader br = new BufferedReader(new InputStreamReader(ir));
+            String s = "";
+            while((s = br.readLine())!=null){
+                System.out.println(s);
+            }
+
+        }catch (IOException e){
+
+        }*/
         sample = new Animation3D(50,R.raw.anim_sample_000001, R.drawable.rickuii,context);
         sample.addFrame(R.raw.anim_sample_000002);sample.addFrame(R.raw.anim_sample_000003);
         sample.addFrame(R.raw.anim_sample_000004);sample.addFrame(R.raw.anim_sample_000005);
@@ -228,9 +244,6 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         sample.setBredth(0.3f);
         sample.setHeight(1.2f);
 
-        //sample.setMainLight(new SimpleVector(0.5f,0.4f,0.6f));
-        //sample.setLocation(new SimpleVector(0f,0f,0f));
-
         listener.setMain(sample);
         listener.startListener();
         sample.setLocation(new SimpleVector(START_X+2f,2f,0f));
@@ -238,7 +251,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         camera.follow(sample);
 
         //firstScene.addSceneObject(sample);
-        firstScene.setSceneLight(new SimpleVector(0.5f,0.4f,0.6f));
+        firstScene.setSceneLight(new SimpleVector(0.7f,0.77f,0.7f));
 
         sample.setMainLight(new SimpleVector(0.7f,0.7f,0.7f));
         //sample.getMain().rotateY(90);
@@ -251,9 +264,6 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
         GLES20.glClearDepthf(1.0f);
 
-        //camera.setPosition(new SimpleVector(mainCharacter.transformX, 2f, 5f));
-
-        //camera.lookAt(new SimpleVector(mainCharacter.transformX, mainCharacter.transformY,0f));
         camera.updatePinchZoom();
         camera.updateView();
 
@@ -262,22 +272,6 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         customUIDrawing();
 
 
-
-        //o3d.rotateY(0.5f);
-      /*  if(dPad.activeDpadX > 0){
-            mainCharacter.rotateZ -= 0.1f;
-        }else if(dPad.activeDpadX<0){
-            mainCharacter.rotateZ += 0.1f;
-        }else{
-            if(mainCharacter.rotateZ>0){
-                mainCharacter.rotateZ -= 0.1f;
-            }else if(mainCharacter.rotateZ<0){
-                mainCharacter.rotateZ += 0.1f;
-            }
-        }*/
-
-        //mainCharacter.updateLocation(new SimpleVector(dPad.activeDpadX, 0f, 0f));
-        //mainCharacter.getMain().rotateZ(0.5f);
         if(characterGround.isCOLLISION_DETECTED()){
             /*mainCharacter.setVerticalVel(0f);
             mainCharacter.updateHorizontalVel(mainCharacter.DEFAULT_HORIZONTAL_DRAG);*/
@@ -296,10 +290,17 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             if(characterGround.isSTILL_COLLIDING()) {
                 //mainCharacter.setVerticalVel(0.1f);
                 /*mainCharacter.setHorizontalVel(dPad.activeDpadX);*/
+                float rotY = sample.getMain().getRotation().y;
                 if(dPad.activeDpadX>0){
-                    sample.getMain().setRotation(new SimpleVector(0f,90f,0f));
+                    if(rotY<90){
+                        sample.getMain().rotateY(10f);
+                    }
+                    //sample.getMain().setRotation(new SimpleVector(0f,90f,0f));
                 }else{
-                    sample.getMain().setRotation(new SimpleVector(0f,-90f,0f));
+                    if(rotY>-90){
+                        sample.getMain().rotateY(-10f);
+                    }
+                    //sample.getMain().setRotation(new SimpleVector(0f,-90f,0f));
                 }
                 sample.setHorizontalVel(dPad.activeDpadX*0.25f);
                 sample.animate(mainMatrix);

@@ -99,7 +99,7 @@ public class Object3D extends SceneObject {
                         //"vec3 lightReflectionDirection = reflect(vec3(0) - inv_light, scaledNormal);"+
                         //"vec3 normalDotRef = max(0.0, dot(inverseEye, lightReflectionDirection));"+
 
-                        "float diffuse = max(dot(scaledNormal, inv_light), v_ambient);" +
+                        "float diffuse = max(dot(scaledNormal, v_VectorToLight), v_ambient);" +
                         "vec3 f_color = v_lightCol * diffuse;"+
                         "gl_FragColor = vec4(f_color,1.0)*texture2D(u_TextureUnit, v_TextureCoordinates);" +
                             /*normalDotRef*normalDotRef*vertexSRC*specularLight +*/
@@ -336,6 +336,8 @@ public class Object3D extends SceneObject {
         int lightCol = GLES20.glGetUniformLocation(mProgram, LIGHT_COLOR);
         GLES20.glUniform3f(lightCol, lightColor.x, lightColor.y, lightColor.z);
 
+        //------------------------------------
+
         //==========================================================================================
         // Enable a handle to the triangle vertices
         // get handle to vertex shader's vPosition member
@@ -364,10 +366,13 @@ public class Object3D extends SceneObject {
         aTextureHandle = GLES20.glGetAttribLocation(mProgram,"a_TextureCoordinates");
         GLES20.glVertexAttribPointer(aTextureHandle,2,GLES20.GL_FLOAT,false,8,mTextureBuffer);
         GLES20.glEnableVertexAttribArray(aTextureHandle);
-        GLES20.glEnable( GLES20.GL_BLEND);
-        GLES20.glBlendFunc( GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA );
+        //GLES20.glEnable( GLES20.GL_BLEND);
+        //GLES20.glBlendFunc( GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA );
         GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, vertexCount);
         GLES20.glDisableVertexAttribArray(mPositionHandle);
+        GLES20.glDisableVertexAttribArray(normalHandle);
+        GLES20.glDisableVertexAttribArray(aTextureHandle);
+
     }
 
     public void onDrawFrame(float[] mMVPMatrix){

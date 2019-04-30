@@ -133,27 +133,16 @@ public class Animation3D extends SceneObject{
         //gravity
         firstObject.updateLocation(new SimpleVector(super.horizontalAcc,super.verticalAcc,0f));
 
-       // if(framesCounter<frameTime){
-            //animationObjects[currArrayFrame].onDrawFrame(mMVPMatrix);
-           firstObject.onDrawFrame(mMVPMatrix);
-           // framesCounter++;
-      //  }else{
-         //   framesCounter=0;
-            if (currArrayFrame > frameNum-1) {
-                currArrayFrame = 0;
-                firstObject.resetVertexBufferTD();
-               // firstObject.resetNormalBufferTD();
-               // firstObject.resetNormalBufferTD();
-            } else {
-                //if(currArrayFrame!=0){
-                   // ((Object3D)firstObject).updateVertexBuffer(vertices[currArrayFrame]);
-                   // ((Object3D)firstObject).updateNormalBuffer(normals[currArrayFrame]);
-                //}
-                firstObject.setVertexBuffer(vertexBuffer[currArrayFrame]);
-                //firstObject.setNormalBuffer(normalBuffer[currArrayFrame]);
-                currArrayFrame++;
-            }
-       // }
+        firstObject.onDrawFrame(mMVPMatrix);
+        if (currArrayFrame > frameNum-1) {
+            currArrayFrame = 0;
+            firstObject.resetVertexBufferTD();
+           // firstObject.resetNormalBufferTD();
+        } else {
+            firstObject.setVertexBuffer(vertexBuffer[currArrayFrame]);
+            //firstObject.setNormalBuffer(normalBuffer[currArrayFrame]);
+            currArrayFrame++;
+        }
     }
 
     public void setMainLight(SimpleVector l){
