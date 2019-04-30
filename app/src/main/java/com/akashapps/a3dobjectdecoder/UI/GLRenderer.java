@@ -12,6 +12,7 @@ import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 import com.akashapps.a3dobjectdecoder.objects.ObjDecoder;
+import com.akashapps.a3dobjectdecoder.objects.Object3D;
 import com.akashapps.a3dobjectdecoder.objects.ObjectDecoderWLS;
 import com.akashapps.a3dobjectdecoder.R;
 import com.akashapps.a3dobjectdecoder.objects.SimpleVector;
@@ -37,8 +38,10 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     public static Logger logger = Logger.getGlobal();
     public static float SCRWID, SCRHEIGHT, RATIO, screenTop,screenBottom;
     private ObjDecoder cube;
-    private ObjectDecoderWLS cube2;
+    private Object3D cube2;
     private Cube c;
+  //  private TextDecoder textDecoder;
+
     /*private Loader loader;*/
     //private Square s, sBack, example;
     public static Context context;
@@ -64,7 +67,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
 
     public void onSurfaceCreated(GL10 unused, EGLConfig config) {
 
-        Utilities.initialzeTextBms();
+       // Utilities.initialzeTextBms();
         Utilities.setScreenVars(Utilities.getScreenWidthPixels()/Utilities.getScreenHeightPixels()
                 ,Utilities.getScreenHeightPixels(), Utilities.getScreenWidthPixels());
 
@@ -74,12 +77,14 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         //cube = new ObjDecoder(R.raw.monkey_t, R.drawable.num_texture, context);
         //cube = new ObjDecoder(R.raw.android_experiment, R.drawable.rickuii, context);
         //cube.scale(-0.5f,-0.5f);
-        cube2 = new ObjectDecoderWLS(R.raw.android_experiment, R.drawable.rickuii, context);
-        cube2.setMainLight(new SimpleVector(0f,0.5f,0.5f));
+       // textDecoder = new TextDecoder(context);
+
+        cube2 = new Object3D(R.raw.android_experiment, R.drawable.rickuii, context);
+        cube2.setMainLight(new SimpleVector(1f,1f,0.5f));
         System.out.println("================================== L|B|H+======"+cube2.getLength()+
                 "=="+cube2.getBreadth()+"=="+cube2.getHeight());
 
-        cube2.transformZ = -3f;
+        cube2.setLocation(new SimpleVector(0f,0f,-3f));
 
     }
 
@@ -131,8 +136,9 @@ public class GLRenderer implements GLSurfaceView.Renderer {
                 0f, 1.0f, 0.0f);
         android.opengl.Matrix.multiplyMM(uiMVPMatrix, 0, uiProjectionMatrix, 0, uiViewMatrix, 0);
 
-        drawText("FPS: "+FPS, new SimpleVector(-1.6f,0.8f,2f), uiMVPMatrix);
-
+        //drawText("FPS: "+FPS, new SimpleVector(-1.6f,0.8f,2f), uiMVPMatrix);
+        float[] color = {1.0f,1.0f,0f,1f};
+      //  textDecoder.drawText("FPS: "+FPS,new SimpleVector(-1.0f,0.8f,2f),new SimpleVector(1.0f,1.0f,1f),uiMVPMatrix, color);
     }
 
     public void onSurfaceChanged(GL10 unused, int width, int height) {
@@ -145,7 +151,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         //android.opengl.Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 1, 10);
         GLES20.glEnable( GLES20.GL_DEPTH_TEST );
         GLES20.glDepthFunc( GLES20.GL_LESS );
-        GLES20.glDepthMask( true );
+        //GLES20.glDepthMask( true );
         GLES20.glEnable(GLES20.GL_CULL_FACE);
         GLES20.glCullFace(GLES20.GL_FRONT_FACE);
         iniliazeUIElements();

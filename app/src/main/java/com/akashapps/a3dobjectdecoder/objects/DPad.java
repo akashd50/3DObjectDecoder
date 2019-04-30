@@ -6,7 +6,7 @@ import android.graphics.Bitmap;
 import com.akashapps.a3dobjectdecoder.R;
 import com.akashapps.a3dobjectdecoder.Utilities.Utilities;
 
-public class DPad {
+public class DPad extends Controller{
 
     private static final String DPAD_DIR_R = "right";
     private static final String DPAD_DIR_L = "left";
@@ -42,23 +42,22 @@ public class DPad {
         length = scale;
         //this.type = type;
         Bitmap bp = null;
-        icon = new TexturedPlane(0f,0f,0f,scale,scale,context, R.drawable.slider_iconn,bp);
-        background = new TexturedPlane(0f,0f,0f,scale*2,scale*2,context, R.drawable.dpad_back,bp);
+        icon = new TexturedPlane(scale,scale,context, R.drawable.slider_iconn);
+        background = new TexturedPlane(scale*2,scale*2,context, R.drawable.dpad_back);
 
         background.setDefaultTrans(center.x,center.y,center.z+2f);
         icon.setDefaultTrans(center.x,center.y,center.z+2.5f);
     }
 
-    public void draw(float[] mMVPMatrix){
+    public void onDrawFrame(float[] mMVPMatrix){
         background.draw(mMVPMatrix);
         icon.draw(mMVPMatrix);
     }
 
-    public boolean onTouchDown(float x,float y){
+    public void onTouchDown(float x,float y){
        if(icon.isClicked(x,y)){
             this.isClicked = true;
         }
-        return this.isClicked;
     }
 
     public void onTouchMove(float x,float y){

@@ -299,8 +299,8 @@ public class ObjectDecoderWLS extends SceneObject{
         }else{
             lAngleX = 0;
         }
-        int vectorToLight = GLES20.glGetUniformLocation(mProgram, "u_VectorToLight");
-        GLES20.glUniform3f(vectorToLight, mainlight.x, mainlight.y, mainlight.z);
+        int vectorToLight = GLES20.glGetUniformLocation(mProgram, "v_VectorToLight");
+        GLES20.glUniform3f(vectorToLight, 0.5f, 0.5f, 0.5f);
         //==========================================================================================
         // Enable a handle to the triangle vertices
         // get handle to vertex shader's vPosition member
@@ -339,6 +339,8 @@ public class ObjectDecoderWLS extends SceneObject{
         //GLES20.glDrawArrays(GLES20.GL_LINES);
         // Disable vertex array
         GLES20.glDisableVertexAttribArray(mPositionHandle);
+        GLES20.glDisableVertexAttribArray(normalHandle);
+
         //  GLES20.glEnable( GL_BLEND );
     }
 

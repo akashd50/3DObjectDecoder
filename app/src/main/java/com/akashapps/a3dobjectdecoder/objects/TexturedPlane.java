@@ -9,6 +9,7 @@ import android.opengl.GLUtils;
 import android.opengl.Matrix;
 
 import com.akashapps.a3dobjectdecoder.UI.GLRenderer;
+import com.akashapps.a3dobjectdecoder.Utilities.Utilities;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -39,168 +40,29 @@ public class TexturedPlane {
     private int mMVPMatrixHandle, aTextureHandle, textureUniform;
     public float rotateX,rotateY,rotateZ, defRotX, defRotY, defRotZ;
     public boolean active;
-    private Square backgroundSq;
-    public float[] light, lightLoc;
+    //private Square backgroundSq;
+    //public float[] light, lightLoc;
     private boolean isLighting;
+
     private String TPVERTEXSHADER =
             "uniform mat4 u_Matrix;" +
             "attribute vec4 a_Position;" +
             "attribute vec2 a_TextureCoordinates;" +
-         //   "uniform vec4 a_light;"+
-          //  "varying vec4 v_light;"+
             "varying vec2 v_TextureCoordinates;" +
-                  //  "varying"+
             "void main()" +
             "{" +
-               // "v_light = a_light;"+
                 "v_TextureCoordinates = a_TextureCoordinates;" +
-                  //  "float dist = gl_Position.x;"+
                 "gl_Position = u_Matrix * a_Position;" +
             "}";
 
     private String TPFRAGMENTSHADER =
                 "precision mediump float;" +
                 "uniform sampler2D u_TextureUnit;" +
-                // "varying vec4 v_light;"+
-                      //  "vec3 t_Color;"+
-                      //  "t_Color.xyz = vec3(0.5,0.1,0.1);"+
                 "varying vec2 v_TextureCoordinates;" +
                 "void main()" +
                 "{" +
-                  // "float dist = sqrt(((0.5-v_TextureCoordinates.x)*(0.5-v_TextureCoordinates.x))+ ((0.5-v_TextureCoordinates.y)*(0.5-v_TextureCoordinates.y)));"+
-                   // "vec4 light = vec4(v_light.x/dist,v_light.y/dist,v_light.z/dist,1.0); "+
-                        //"light.y = v_TextureCoordinates.y;"+
-                        /*"v_light.x = v_light.x/dist;"+
-                        "v_light.y = v_light.y/dist;"+
-                        "v_light.z = v_light.z/dist;"+*/
                     "gl_FragColor = texture2D(u_TextureUnit, v_TextureCoordinates);" +
                 "}";
-
-    public TexturedPlane(float cx,float cy, float cz, float l, float h, Context ctx, int resID, Bitmap bm){
-        isLighting = false;
-        this.l = l;
-        this.h = h;
-        transformY = 0f;
-        transformX = 0f;
-        transformZ = 0f;
-        scaleX = 1f;
-        scaleY = 1f;
-        float[] tc = {0f,0f,0f,0f};
-        backgroundSq = new Square(l,h,tc, ctx);
-
-        context = ctx;
-        float v1[] = {cx,cy,cz,
-                cx-(l/2),cy-(h/2),cz,
-                cx+(l/2),cy-(h/2),cz,
-                cx+(l/2),cy+(h/2),cz,
-                cx-(l/2),cy+(h/2),cz,
-                cx-(l/2),cy-(h/2),cz};
-
-        float[] textureCoords = {0.5f, 0.5f,
-                                 0f, 1.0f,
-                                 1f, 1.0f,
-                                 1f, 0.0f,
-                                 0f, 0.f,
-                                 0f, 1.0f };
-
-        vertexCount = v1.length/COORDS_PER_VERTEX ;
-        ByteBuffer bb = ByteBuffer.allocateDirect(v1.length * 4);
-        if(bb!=null) {
-            // (number of coordinate values * 4 bytes per float)
-
-            // use the device hardware's native byte order
-            bb.order(ByteOrder.nativeOrder());
-
-            // create a floating point buffer from the ByteBuffer
-            vertexBuffer = bb.asFloatBuffer();
-            // add the coordinates to the FloatBuffer
-            vertexBuffer.put(v1);
-            // set the buffer to read the first coordinate
-            vertexBuffer.position(0);
-            // float is 4 bytes, therefore we multiply the number if
-            // vertices with 4.
-            ByteBuffer byteBuf = ByteBuffer.allocateDirect(
-                    textureCoords.length * 4);
-            byteBuf.order(ByteOrder.nativeOrder());
-            mTextureBuffer = byteBuf.asFloatBuffer();
-            mTextureBuffer.put(textureCoords);
-            mTextureBuffer.position(0);
-            generateProgram();
-            loadTexture(ctx,resID, bm);
-        }
-
-        float[] color = {0.7f,0.3f,0.4f, 1.0f};
-        light = color;
-        /*ByteBuffer cb = ByteBuffer.allocateDirect(light.length*4);
-        cb.order(ByteOrder.nativeOrder());
-        colorBuffer = cb.asFloatBuffer();
-        colorBuffer.put(light);
-        cb.position(0);*/
-
-        active = true;
-    }
-
-    public TexturedPlane(float scale, int resID, Context ctx){
-        isLighting = false;
-        this.l = scale;
-        this.h = scale;
-        transformY = 0f;
-        transformX = 0f;
-        transformZ = 0f;
-        bitmap = null;
-        scaleX = 1f;
-        scaleY = 1f;
-        context = ctx;
-        float v1[] = {0f,0f,0f,
-                0f-(l/2),0f-(h/2),0f,
-                0f+(l/2),0f-(h/2),0f,
-                0f+(l/2),0f+(h/2),0f,
-                0f-(l/2),0f+(h/2),0f,
-                0f-(l/2),0f-(h/2),0f};
-
-        float[] textureCoords = {0.5f, 0.5f,
-                0f, 1.0f,
-                1f, 1.0f,
-                1f, 0.0f,
-                0f, 0.f,
-                0f, 1.0f };
-
-        vertexCount = v1.length/COORDS_PER_VERTEX ;
-        ByteBuffer bb = ByteBuffer.allocateDirect(v1.length * 4);
-        if(bb!=null) {
-            // (number of coordinate values * 4 bytes per float)
-
-            // use the device hardware's native byte order
-            bb.order(ByteOrder.nativeOrder());
-
-            // create a floating point buffer from the ByteBuffer
-            vertexBuffer = bb.asFloatBuffer();
-            // add the coordinates to the FloatBuffer
-            vertexBuffer.put(v1);
-            // set the buffer to read the first coordinate
-            vertexBuffer.position(0);
-            // float is 4 bytes, therefore we multiply the number if
-            // vertices with 4.
-            ByteBuffer byteBuf = ByteBuffer.allocateDirect(
-                    textureCoords.length * 4);
-            byteBuf.order(ByteOrder.nativeOrder());
-            mTextureBuffer = byteBuf.asFloatBuffer();
-            mTextureBuffer.put(textureCoords);
-            mTextureBuffer.position(0);
-            generateProgram();
-            loadTexture(ctx,resID, bitmap);
-        }
-
-        float[] color = {0.7f,0.3f,0.4f, 1.0f};
-        light = color;
-        /*ByteBuffer cb = ByteBuffer.allocateDirect(light.length*4);
-        cb.order(ByteOrder.nativeOrder());
-        colorBuffer = cb.asFloatBuffer();
-        colorBuffer.put(light);
-        cb.position(0);*/
-
-        active = true;
-    }
 
     public TexturedPlane(float l, float h, Context ctx, int resID) {
         active = true;
@@ -215,7 +77,7 @@ public class TexturedPlane {
         scaleY = 1f;
         context = ctx;
         float[] tc = {0f, 0f, 0f, 0f};
-        backgroundSq = new Square(l, h, tc, ctx);
+        //backgroundSq = new Square(l, h, tc, ctx);
 
         float v1[] = {0f, 0f, 0f,
                 0f - (l / 2), 0f - (h / 2), 0f,
@@ -271,7 +133,7 @@ public class TexturedPlane {
         scaleY = 1f;
         context = ctx;
         float[] tc = {0f,0f,0f,0f};
-        backgroundSq = new Square(l,h,tc, ctx);
+        //backgroundSq = new Square(l,h,tc, ctx);
 
         TPVERTEXSHADER =
                 "uniform mat4 u_Matrix;" +
@@ -356,8 +218,8 @@ public class TexturedPlane {
             loadTexture(ctx,resID, bitmap);
         }
 
-        this.light = lightCol;
-        this.lightLoc = lightLoc;
+       /* this.light = lightCol;
+        this.lightLoc = lightLoc;*/
 
         active = true;
     }
@@ -419,22 +281,7 @@ public class TexturedPlane {
         //    }
         bm.recycle();
         this.collisionCoords = temp;
-        //return temp;
     }
-
-    public void updateMeshWithTransforms(){
-        int len = collisionCoords[0].length;
-        for(int j=0;j<len;j++){
-            if(j<len/2) {
-                collisionCoords[0][j] = transformX - collisionCoords[0][j];
-            }else{
-                collisionCoords[0][j] = transformX + collisionCoords[0][j];
-            }
-            collisionCoords[1][j] = transformY + collisionCoords[1][j];
-            collisionCoords[2][j] = transformY + collisionCoords[1][j];
-        }
-    }
-
 
     public float[][] getHeightArray(int quality, int rID, float lt, float ht){
         final BitmapFactory.Options options = new BitmapFactory.Options();
@@ -458,12 +305,10 @@ public class TexturedPlane {
         }
         float lenR = bm.getWidth()/lt;
         float hR = bm.getHeight()/ht;
-      //  for(int i=0;i<ar.length;i++){
             for(int j=0;j<ar[0].length;j++){
                 temp[0][j] = ar[0][j]/lenR;
                 temp[1][j] = ar[1][j]/hR;
             }
-    //    }
         bm.recycle();
         return temp;
     }
@@ -479,9 +324,6 @@ public class TexturedPlane {
             bitmap = BitmapFactory.decodeResource(
                     context.getResources(), resID, options);
         }
-
-        /*= BitmapFactory.decodeResource(
-                context.getResources(), resID, options);*/
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures[0]);
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR_MIPMAP_LINEAR);
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
@@ -500,13 +342,13 @@ public class TexturedPlane {
         mMVPMatrixHandle = GLES20.glGetUniformLocation(mProgram, "u_Matrix");
         // Pass the projection and view transformation to the shader
         GLES20.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, mMVPMatrix, 0);
-        if(isLighting) {
+       /* if(isLighting) {
             int lightHandle = GLES20.glGetUniformLocation(mProgram, "a_light");
             GLES20.glUniform4f(lightHandle, light[0], light[1], light[2], light[3]);
 
             int lightLoc = GLES20.glGetUniformLocation(mProgram, "a_lightLocation");
             GLES20.glUniform3f(lightLoc, this.lightLoc[0], this.lightLoc[1], this.lightLoc[2]);
-        }
+        }*/
         // Enable a handle to the triangle vertices
         // get handle to vertex shader's vPosition member
         textureUniform = GLES20.glGetUniformLocation(mProgram,"u_TextureUnit");
@@ -525,50 +367,18 @@ public class TexturedPlane {
                 vertexStride, vertexBuffer);
         GLES20.glEnableVertexAttribArray(mPositionHandle);
 
-
-       /* colorBuffer.position(0);
-        int aColorLocation = GLES20.glGetAttribLocation(mProgram, "a_light");
-        GLES20.glVertexAttribPointer(aColorLocation, 4,
-                GLES20.GL_FLOAT, false,
-                0, colorBuffer);*/
-
-        //GLES20.glEnableVertexAttribArray(aColorLocation);
-
-
         mTextureBuffer.position(0);
         aTextureHandle = GLES20.glGetAttribLocation(mProgram,"a_TextureCoordinates");
         GLES20.glVertexAttribPointer(aTextureHandle,2,GLES20.GL_FLOAT,false,8,mTextureBuffer);
         GLES20.glEnableVertexAttribArray(aTextureHandle);
 
-        // get handle to fragment shader's vColor member
-        /*mColorHandle = GLES20.glGetAttribLocation(mProgram, "a_Color");
-        //vertexBuffer.position(COORDS_PER_VERTEX); //start from 3... reading color data from the matrix
-        colorBuffer.position(0);
-        GLES20.glVertexAttribPointer(mColorHandle,COLOR_COMPONENTS_COUNT,
-                GLES20.GL_FLOAT,false,
-                COLOR_COMPONENTS_COUNT*4,colorBuffer);
-        GLES20.glEnableVertexAttribArray(mColorHandle);*/
-        // Set color for drawing the triangle
-        // GLES20.glUniform4fv(mColorHandle, 1, color, 0);
-        // Draw the triangle
         GLES20.glEnable( GL_BLEND );
         GLES20.glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-        //GLES20.glBlendColor(1f,0.1f, 0.1f,1.0f);
-
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_FAN, 0, vertexCount);
-        //GLES20.glDrawArrays(GLES20.GL_LINES);
-        // Disable vertex array
         GLES20.glDisableVertexAttribArray(mPositionHandle);
     }
 
     public void draw(float[] mMVPMatrix){
-        /*float[] scratcht = new float[16];
-        float[] tempMoveMat = new float[16];
-        Matrix.setIdentityM(tempMoveMat, 0);*/
-
-
-        /*Matrix.multiplyMM(scratcht, 0, mMVPMatrix, 0,tempMoveMat , 0);*/
-
         float[] scratch = new float[16];
         float[] temp = new float[16];
 
@@ -609,15 +419,15 @@ public class TexturedPlane {
         transformX = x;
         transformY = y;
         transformZ = z;
-        backgroundSq.changeTransform(x,y,z);
+        //backgroundSq.changeTransform(x,y,z);
     }
 
     public void updateTransform(float x,float y,float z){
         transformX += x;
         transformY += y;
         transformZ += z;
-        backgroundSq.updateTrasnformX(x);
-        backgroundSq.updateTrasnformY(y);
+        //backgroundSq.updateTrasnformX(x);
+        //backgroundSq.updateTrasnformY(y);
     }
     public float getTransformY(){return this.transformY;}
     public float getTransformX(){return this.transformX;}
@@ -630,7 +440,7 @@ public class TexturedPlane {
         this.transformX=x;
         this.transformY=y;
         this.transformZ=z;
-        backgroundSq.setDefaultTrans(x,y,z);
+        //backgroundSq.setDefaultTrans(x,y,z);
     }
 
     public void jstDefaultTrans(float x,float y,float z){
@@ -690,86 +500,22 @@ public class TexturedPlane {
     public float getScaleY(){return scaleY;}
 
     public boolean isClicked(float tx, float ty){
-        if(backgroundSq.isClicked(tx,ty)){
+
+        float scrW = Utilities.getScreenWidthPixels();
+        float scrH = Utilities.getScreenHeightPixels();
+        float scrRatio = scrW/scrH;
+
+        float left = (scrW/2 + ((-l/2)/scrRatio)*scrW/2) + ((this.transformX/scrRatio)*(scrW/2));
+        float top =  (scrH/2-((h/2)*scrH/2) - ((this.transformY/1.0f) * scrH/2));
+        float right = (scrW/2 + ((l/2)/scrRatio)*scrW/2) + ((this.transformX/scrRatio)*(scrW/2));
+        // this.bottom = (int) (scrHeight/2- ar2[1]*scrHeight/2);
+        float bottom = (scrH/2-((-h/2)*scrH/2) - ((this.transformY/1.0f)* scrH/2));
+
+        if(tx > left && tx < right && ty < bottom && ty > top) {
             return true;
         }else return false;
     }
 
-    public boolean onTriggerCollision(TexturedPlane t){
-        if(t.collisionCoords!=null && this.collisionCoords!=null){
-          //  if(this.transformX > t.get){
-            //}
-           // if(this.transformX>t.transformX-t.l/2 && this.transformX<t.transformX+t.l/2) {
-                if(t.transformY>this.transformY) {
-                    for (int i = 0; i < collisionCoords[0].length; i++) {
-
-                        float currX = this.transformX + this.collisionCoords[0][i];
-                        float y1 = this.transformY + this.collisionCoords[1][i];
-
-                        float stdTransform = (t.transformX - t.l / 2) - (currX);
-                        int locX = /*t.collisionCoords[1].length / 2 + */(int) ((stdTransform / t.l) * t.collisionCoords[0].length);
-                        if(locX>=0 && locX<t.collisionCoords[0].length) {
-                            float top = t.transformY + t.collisionCoords[1][locX];
-                            float bottom = t.transformY + t.collisionCoords[2][locX];
-                            if (y1 > bottom && y1 < top) {
-                                return true;
-                            }
-                        }else{
-                            return false;
-                        }
-                    }
-                }else{
-                    for (int i = 0; i < collisionCoords[0].length; i++) {
-
-                        float currX = this.transformX + this.collisionCoords[0][i];
-                        float y1 = this.transformY + this.collisionCoords[2][i];
-
-                        float stdTransform = (t.transformX - t.l / 2) - (currX);
-                        int locX = /*t.collisionCoords[1].length / 2 + */(int) ((stdTransform / t.l) * t.collisionCoords[0].length);
-                        if(locX>=0 && locX<t.collisionCoords[0].length) {
-                            float top = t.transformY + t.collisionCoords[1][locX];
-                            float bottom = t.transformY + t.collisionCoords[2][locX];
-                            if (y1 > bottom && y1 < top) {
-                                return true;
-                            }
-                        }else{
-                            return false;
-                        }
-                    }
-                }
-
-          //  }
-        }
-        return false;
-    }
-
-    public boolean onTriggerCollisionPoint(float x, float y){
-
-       // for (int i = 0; i < collisionCoords[0].length; i++) {
-
-            /*float currX = this.transformX + this.collisionCoords[0][i];
-            float y1 = this.transformY + this.collisionCoords[1][i];*/
-        if(x<this.transformX+l/2 && x>this.transformX-l/2) {
-            float stdTransform =0;
-           // if(x!=0) {
-             stdTransform = (this.transformX - this.l / 2) - (x);
-             stdTransform = Math.abs(stdTransform);
-          //  }
-            int locX = /*this.collisionCoords[1].length / 2 +*/ (int) ((stdTransform / this.l) * this.collisionCoords[0].length);
-            if (locX >= 0 && locX < this.collisionCoords[0].length) {
-                float top = this.transformY + this.collisionCoords[1][locX];
-                float bottom = this.transformY + this.collisionCoords[2][locX];
-                if (y > bottom && y < top) {
-                    return true;
-                }
-            } else {
-                return false;
-            }
-        }
-       // }
-
-        return false;
-    }
     public void setDefaultRotation(float x, float y, float z){
         defRotX = x;
         defRotY = y;

@@ -11,6 +11,7 @@ import com.akashapps.a3dobjectdecoder.Utilities.TextDecoder;
 import com.akashapps.a3dobjectdecoder.Utilities.Utilities;
 import com.akashapps.a3dobjectdecoder.logic.BoxCollisionListener;
 import com.akashapps.a3dobjectdecoder.logic.CollisionHandler;
+import com.akashapps.a3dobjectdecoder.logic.SceneControlHandler;
 import com.akashapps.a3dobjectdecoder.objects.Animation3D;
 import com.akashapps.a3dobjectdecoder.objects.BoxCollider;
 import com.akashapps.a3dobjectdecoder.objects.Camera;
@@ -59,6 +60,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
 
     private BoxCollisionListener listener;
     private CollisionHandler characterGround;
+    private SceneControlHandler sceneControlHandler;
     private Person mainCharacter;
     private boolean isReady;
     private Animation3D sample;
@@ -90,12 +92,12 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         //Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 3, 10);
         Matrix.orthoM(uiProjectionMatrix, 0, -ratio, ratio, -1, 1, 1, 10);
         //Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 1, 10);
+        GLES20.glDepthMask( true );
         GLES20.glEnable( GLES20.GL_DEPTH_TEST );
-        // GLES20.glDepthFunc( GLES20.GL_LEQUAL);
-        //GLES20.glDepthMask( true );
+        GLES20.glDepthFunc( GLES20.GL_LESS);
 
-        GLES20.glEnable( GLES20.GL_BLEND);
-        GLES20.glBlendFunc( GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA );
+        //GLES20.glEnable( GLES20.GL_BLEND);
+        //GLES20.glBlendFunc( GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA );
 
         GLES20.glEnable(GLES20.GL_CULL_FACE);
         GLES20.glCullFace(GLES20.GL_FRONT_FACE);
@@ -115,6 +117,8 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
     private void initializeUIElements(){
         dPad = new DPad(new SimpleVector(-1.3f,-0.6f,0f),0.4f,context);
         textDecoder = new TextDecoder(context);
+        sceneControlHandler = new SceneControlHandler();
+        sceneControlHandler.addController(dPad);
     }
 
     private void initializeGameObjects(){
@@ -151,7 +155,6 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         skybox.setBredth(100f);
         skybox.setLocation(new SimpleVector(START_X+7f,START_Y,START_Z-10f));
         firstScene.addSceneObject(skybox);
-
         tx = START_X+5f;
         for(int i=0;i<5;i++) {
             Object3D ground = new Object3D(R.raw.ground_i,R.drawable.rickuii, context);
@@ -269,9 +272,6 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
 
         float[] mainMatrix = camera.getViewMatrix();
 
-        customUIDrawing();
-
-
         if(characterGround.isCOLLISION_DETECTED()){
             /*mainCharacter.setVerticalVel(0f);
             mainCharacter.updateHorizontalVel(mainCharacter.DEFAULT_HORIZONTAL_DRAG);*/
@@ -311,6 +311,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         }
 
         firstScene.onDrawFrame(mainMatrix);
+        customUIDrawing();
 
         currentFrameTime = System.nanoTime();
         long tTime = currentFrameTime - previousFrameTime;
@@ -326,8 +327,9 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
 
         float[] color = {1.0f,1.0f,0f,1f};
         textDecoder.drawText("FPS: "+FPS,new SimpleVector(-1.0f,0.8f,2f),new SimpleVector(1.0f,1.0f,1f),uiMVPMatrix, color);
-        dPad.onTouchMove(controller.getTouchX(), controller.getTouchY());
-        dPad.draw(uiMVPMatrix);
+        //dPad.onTouchMove(controller.getTouchX(), controller.getTouchY());
+        //dPad.onDrawFrame(uiMVPMatrix);
+        sceneControlHandler.onDrawFrame(uiMVPMatrix);
     }
 
     public static void drawText(String s, SimpleVector loc, float[] mMVPMatrix){
@@ -350,10 +352,16 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
     }
 
     public void onTouchDown(MotionEvent event){
-        dPad.onTouchDown(event.getX(), event.getY());
+        sceneControlHandler.onTouchDown(event.getX(), event.getY());
+        //dPad.onTouchDown(event.getX(), event.getY());
     }
 
     public void onTouchUp(MotionEvent event){
-        dPad.onTouchUp(event.getX(), event.getY());
+        sceneControlHandler.onTouchUp(event.getX(), event.getY());
+        //dPad.onTouchUp(event.getX(), event.getY());
+    }
+
+    public void onTouchMove(MotionEvent event){
+        sceneControlHandler.onTouchMove(event.getX(), event.getY());
     }
 }
