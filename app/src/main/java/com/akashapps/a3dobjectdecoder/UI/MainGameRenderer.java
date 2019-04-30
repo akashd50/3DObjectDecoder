@@ -301,7 +301,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
                 }else{
                     sample.getMain().setRotation(new SimpleVector(0f,-90f,0f));
                 }
-                sample.setHorizontalVel(dPad.activeDpadX*0.50f);
+                sample.setHorizontalVel(dPad.activeDpadX*0.25f);
                 sample.animate(mainMatrix);
 
             }
