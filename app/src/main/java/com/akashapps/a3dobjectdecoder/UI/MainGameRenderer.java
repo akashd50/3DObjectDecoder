@@ -1,6 +1,7 @@
 package com.akashapps.a3dobjectdecoder.UI;
 
 import android.content.Context;
+import android.content.res.AssetManager;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
@@ -12,23 +13,18 @@ import com.akashapps.a3dobjectdecoder.Utilities.Utilities;
 import com.akashapps.a3dobjectdecoder.logic.BoxCollisionListener;
 import com.akashapps.a3dobjectdecoder.logic.CollisionHandler;
 import com.akashapps.a3dobjectdecoder.logic.SceneControlHandler;
-import com.akashapps.a3dobjectdecoder.objects.Animation3D;
+import com.akashapps.a3dobjectdecoder.objects.AnimatedObject;
+import com.akashapps.a3dobjectdecoder.objects.Animation;
 import com.akashapps.a3dobjectdecoder.objects.BoxCollider;
+import com.akashapps.a3dobjectdecoder.objects.Button;
 import com.akashapps.a3dobjectdecoder.objects.Camera;
 import com.akashapps.a3dobjectdecoder.objects.Object3D;
-import com.akashapps.a3dobjectdecoder.objects.Person;
 import com.akashapps.a3dobjectdecoder.objects.Scene;
 import com.akashapps.a3dobjectdecoder.logic.TouchController;
 import com.akashapps.a3dobjectdecoder.objects.DPad;
-import com.akashapps.a3dobjectdecoder.objects.Map;
-import com.akashapps.a3dobjectdecoder.objects.ObjectDecoderWLS;
 import com.akashapps.a3dobjectdecoder.objects.SimpleVector;
-import com.akashapps.a3dobjectdecoder.objects.TexturedPlane;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -36,22 +32,22 @@ import javax.microedition.khronos.opengles.GL10;
 public class MainGameRenderer implements GLSurfaceView.Renderer {
 
     //public static final float[] mMVPMatrix = new float[16];
-    public static final float[] mProjectionMatrix = new float[16];
+    private static final float[] mProjectionMatrix = new float[16];
     //public static final float[] mViewMatrix = new float[16];
 
-    public static final float[] uiMVPMatrix = new float[16];
-    public static final float[] uiProjectionMatrix = new float[16];
-    public static final float[] uiViewMatrix = new float[16];
+    private static final float[] uiMVPMatrix = new float[16];
+    private static final float[] uiProjectionMatrix = new float[16];
+    private static final float[] uiViewMatrix = new float[16];
 
     private TouchController controller;
     private TextDecoder textDecoder;
 
-    public static Context context;
-    public static int FPS=0;
+    public Context context;
+    private static int FPS=0;
     private static long currentFrameTime, previousFrameTime;
     private DPad dPad;
-    private Map map;
-    //private ObjectDecoderWLS block, mainCharacter;
+    private Button punchButton;
+
     private Scene firstScene;
     private Camera camera;
     private static float START_Y= 0.0f;
@@ -61,9 +57,11 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
     private BoxCollisionListener listener;
     private CollisionHandler characterGround;
     private SceneControlHandler sceneControlHandler;
-    private Person mainCharacter;
+    //private Person mainCharacter;
     private boolean isReady;
-    private Animation3D sample;
+    private AnimatedObject mainCharacter;
+    private Animation sample, punch;
+
     public MainGameRenderer(Context ctx, TouchController controller) {
         this.context = ctx;
         this.controller = controller;
@@ -74,10 +72,8 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
 
 
     public void onSurfaceCreated(GL10 unused, EGLConfig config) {
-     //   Utilities.initialzeTextBms();
         Utilities.setScreenVars(Utilities.getScreenWidthPixels()/Utilities.getScreenHeightPixels()
                 ,Utilities.getScreenHeightPixels(), Utilities.getScreenWidthPixels());
-
     }
 
     @Override
@@ -111,14 +107,16 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         camera.setFollowSpeed(new SimpleVector(0.1f,0f,0f));
         camera.setFollowDelay(new SimpleVector(1.5f,0f,0f));
         isReady = true;
-
     }
 
     private void initializeUIElements(){
         dPad = new DPad(new SimpleVector(-1.3f,-0.6f,0f),0.4f,context);
+        punchButton = new Button(R.mipmap.punch_ic_ii, new SimpleVector(0.2f,0.2f,0f),context);
+        punchButton.setLocation(new SimpleVector(1.6f,-0.6f,0f));
         textDecoder = new TextDecoder(context);
         sceneControlHandler = new SceneControlHandler();
         sceneControlHandler.addController(dPad);
+        sceneControlHandler.addController(punchButton);
     }
 
     private void initializeGameObjects(){
@@ -185,79 +183,54 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             tx+=10f;
         }
 
-        /*mainCharacter = new Person(R.raw.char_model_v_ii, R.drawable.rickuii, context);
-        mainCharacter.setCollider(new BoxCollider());
+        AssetManager am = context.getAssets();
+        mainCharacter = new AnimatedObject(R.raw.person_model_i, R.drawable.rickuii,context);
 
+        sample = mainCharacter.addAnimation(50);
+        try{
+            String path = "anim_walk/";
+            String name = "anim_sample_0000";
+            String ext = ".obj";
+            for(int i=1;i<=50;i++) {
+                if(i<10) {
+                    sample.addFrame(am.open(path + name + "0"+i + ext));
+                }else{
+                    sample.addFrame(am.open(path + name + i + ext));
+                }
+            }
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+        punch = mainCharacter.addAnimation(40);
+        try{
+            String path = "anim_punch/";
+            String name = "anim_sample_0000";
+            String ext = ".obj";
+            for(int i=1;i<=40;i++) {
+                if(i<10) {
+                    punch.addFrame(am.open(path + name + "0"+i + ext));
+                }else{
+                    punch.addFrame(am.open(path + name + i + ext));
+                }
+            }
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+
+        mainCharacter.setCollider(new BoxCollider());
         mainCharacter.setVerticalVel(-0.004f);
-        mainCharacter.getMain().setLength(0.5f);
-        mainCharacter.getMain().setBredth(0.3f);
-        mainCharacter.getMain().setHeight(1.2f);
+        mainCharacter.setLength(0.5f);
+        mainCharacter.setBredth(0.3f);
+        mainCharacter.setHeight(1.2f);
 
         listener.setMain(mainCharacter);
         listener.startListener();
-        mainCharacter.getMain().setLocation(new SimpleVector(START_X+2f,2f,0f));
+        mainCharacter.setLocation(new SimpleVector(START_X+2f,2f,0f));
         mainCharacter.setGravity(true);
         camera.follow(mainCharacter);
-        firstScene.addSceneObject(mainCharacter);
-        firstScene.setSceneLight(new SimpleVector(0.5f,0.4f,0.6f));
 
-        mainCharacter.getMain().rotateY(90);
-*/
-      /*  try {
-            InputStream ir = context.getResources().getAssets().open("/res/anim_punch/anim_sample_000001.obj");
-            BufferedReader br = new BufferedReader(new InputStreamReader(ir));
-            String s = "";
-            while((s = br.readLine())!=null){
-                System.out.println(s);
-            }
-
-        }catch (IOException e){
-
-        }*/
-        sample = new Animation3D(50,R.raw.anim_sample_000001, R.drawable.rickuii,context);
-        sample.addFrame(R.raw.anim_sample_000002);sample.addFrame(R.raw.anim_sample_000003);
-        sample.addFrame(R.raw.anim_sample_000004);sample.addFrame(R.raw.anim_sample_000005);
-        sample.addFrame(R.raw.anim_sample_000006);sample.addFrame(R.raw.anim_sample_000007);
-        sample.addFrame(R.raw.anim_sample_000008);sample.addFrame(R.raw.anim_sample_000009);
-        sample.addFrame(R.raw.anim_sample_000010);sample.addFrame(R.raw.anim_sample_000011);
-        sample.addFrame(R.raw.anim_sample_000012);sample.addFrame(R.raw.anim_sample_000013);
-        sample.addFrame(R.raw.anim_sample_000014);sample.addFrame(R.raw.anim_sample_000015);
-        sample.addFrame(R.raw.anim_sample_000016);sample.addFrame(R.raw.anim_sample_000017);
-        sample.addFrame(R.raw.anim_sample_000018);sample.addFrame(R.raw.anim_sample_000019);
-        sample.addFrame(R.raw.anim_sample_000020);sample.addFrame(R.raw.anim_sample_000021);
-        sample.addFrame(R.raw.anim_sample_000022);sample.addFrame(R.raw.anim_sample_000023);
-        sample.addFrame(R.raw.anim_sample_000024);sample.addFrame(R.raw.anim_sample_000025);
-        sample.addFrame(R.raw.anim_sample_000026);sample.addFrame(R.raw.anim_sample_000027);
-        sample.addFrame(R.raw.anim_sample_000028);sample.addFrame(R.raw.anim_sample_000029);
-        sample.addFrame(R.raw.anim_sample_000030);sample.addFrame(R.raw.anim_sample_000031);
-        sample.addFrame(R.raw.anim_sample_000032);sample.addFrame(R.raw.anim_sample_000033);
-        sample.addFrame(R.raw.anim_sample_000034);sample.addFrame(R.raw.anim_sample_000035);
-        sample.addFrame(R.raw.anim_sample_000036);sample.addFrame(R.raw.anim_sample_000037);
-        sample.addFrame(R.raw.anim_sample_000038);sample.addFrame(R.raw.anim_sample_000039);
-        sample.addFrame(R.raw.anim_sample_000040);sample.addFrame(R.raw.anim_sample_000041);
-        sample.addFrame(R.raw.anim_sample_000042);sample.addFrame(R.raw.anim_sample_000043);
-        sample.addFrame(R.raw.anim_sample_000044);sample.addFrame(R.raw.anim_sample_000045);
-        sample.addFrame(R.raw.anim_sample_000046);sample.addFrame(R.raw.anim_sample_000047);
-        sample.addFrame(R.raw.anim_sample_000048);sample.addFrame(R.raw.anim_sample_000049);
-        sample.addFrame(R.raw.anim_sample_000050);
-
-        sample.setCollider(new BoxCollider());
-        sample.setVerticalVel(-0.004f);
-        sample.setLength(0.5f);
-        sample.setBredth(0.3f);
-        sample.setHeight(1.2f);
-
-        listener.setMain(sample);
-        listener.startListener();
-        sample.setLocation(new SimpleVector(START_X+2f,2f,0f));
-        sample.setGravity(true);
-        camera.follow(sample);
-
-        //firstScene.addSceneObject(sample);
         firstScene.setSceneLight(new SimpleVector(0.7f,0.77f,0.7f));
-
-        sample.setMainLight(new SimpleVector(0.7f,0.7f,0.7f));
-        //sample.getMain().rotateY(90);
+        mainCharacter.setMainLight(new SimpleVector(0.7f,0.7f,0.7f));
     }
 
     @Override
@@ -273,41 +246,38 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         float[] mainMatrix = camera.getViewMatrix();
 
         if(characterGround.isCOLLISION_DETECTED()){
-            /*mainCharacter.setVerticalVel(0f);
-            mainCharacter.updateHorizontalVel(mainCharacter.DEFAULT_HORIZONTAL_DRAG);*/
-            sample.setVerticalVel(0f);
-            sample.updateHorizontalVel(mainCharacter.DEFAULT_HORIZONTAL_DRAG);
+            mainCharacter.setVerticalVel(0f);
+            mainCharacter.updateHorizontalVel(mainCharacter.DEFAULT_HORIZONTAL_DRAG);
             characterGround.resetCOLLISION_DETECTED();
         }
 
         if(!characterGround.isSTILL_COLLIDING()){
-            /*mainCharacter.updateVerticalVel(mainCharacter.DEFAULT_GRAVITY_UPDATE);*/
-            sample.updateVerticalVel(mainCharacter.DEFAULT_GRAVITY_UPDATE);
+            mainCharacter.updateVerticalVel(mainCharacter.DEFAULT_GRAVITY_UPDATE);
         }
 
 
         if(dPad.isClicked()){
             if(characterGround.isSTILL_COLLIDING()) {
-                //mainCharacter.setVerticalVel(0.1f);
-                /*mainCharacter.setHorizontalVel(dPad.activeDpadX);*/
-                float rotY = sample.getMain().getRotation().y;
+                float rotY = mainCharacter.getMain().getRotation().y;
                 if(dPad.activeDpadX>0){
                     if(rotY<90){
-                        sample.getMain().rotateY(10f);
+                        mainCharacter.getMain().rotateY(10f);
                     }
-                    //sample.getMain().setRotation(new SimpleVector(0f,90f,0f));
                 }else{
                     if(rotY>-90){
-                        sample.getMain().rotateY(-10f);
+                        mainCharacter.getMain().rotateY(-10f);
                     }
-                    //sample.getMain().setRotation(new SimpleVector(0f,-90f,0f));
                 }
-                sample.setHorizontalVel(dPad.activeDpadX*0.25f);
-                sample.animate(mainMatrix);
+                mainCharacter.setHorizontalVel(dPad.activeDpadX*0.25f);
+                mainCharacter.setAnimationTBPlayed(sample.getID());
+                mainCharacter.animate(mainMatrix);
 
             }
-        }else{
-            sample.onDrawFrame(mainMatrix);
+        }else if(punchButton.isClicked()){
+            mainCharacter.setAnimationTBPlayed(punch.getID());
+            mainCharacter.animate(mainMatrix);
+        } else{
+            mainCharacter.onDrawFrame(mainMatrix);
         }
 
         firstScene.onDrawFrame(mainMatrix);
@@ -330,16 +300,6 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         //dPad.onTouchMove(controller.getTouchX(), controller.getTouchY());
         //dPad.onDrawFrame(uiMVPMatrix);
         sceneControlHandler.onDrawFrame(uiMVPMatrix);
-    }
-
-    public static void drawText(String s, SimpleVector loc, float[] mMVPMatrix){
-        float nl = loc.x;
-        for(int i=0;i<s.length();i++){
-            TexturedPlane temp = Utilities.CHARS_ARRAY[(int)s.charAt(i)];
-            temp.changeTransform(nl,loc.y,loc.z);
-            temp.draw(mMVPMatrix);
-            nl+=0.1f;
-        }
     }
 
     public void onStop(){

@@ -4,7 +4,7 @@ import java.util.ArrayList;
 
 public class Scene {
     private ArrayList<SceneObject> objects;
-    //private ArrayList<Animation3D> animatedObjects;
+    //private ArrayList<AnimatedObject> animatedObjects;
     public Scene(){
         objects = new ArrayList<>();
        // animatedObjects = new ArrayList<>();
@@ -14,7 +14,7 @@ public class Scene {
         objects.add(sceneObject);
     }
 
-    public void addAnimatedSceneObject(Animation3D sceneObject){
+    public void addAnimatedSceneObject(AnimatedObject sceneObject){
        // animatedObjects.add(sceneObject);
     }
 
@@ -23,7 +23,7 @@ public class Scene {
             s.onDrawFrame(mMVPMatrix);
         }
 
-       /* for(Animation3D a: animatedObjects){
+       /* for(AnimatedObject a: animatedObjects){
             a.onDrawFrame(mMVPMatrix);
         }*/
     }
@@ -39,7 +39,7 @@ public class Scene {
         for(SceneObject s: objects){
             s.setMainLight(light);
         }
-        /*for(Animation3D a: animatedObjects){
+        /*for(AnimatedObject a: animatedObjects){
             a.setMainLight(light);
         }*/
     }

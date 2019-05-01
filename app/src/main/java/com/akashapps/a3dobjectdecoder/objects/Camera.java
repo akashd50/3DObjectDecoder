@@ -46,7 +46,7 @@ public class Camera {
 
         if(followingObject!=null){
             SimpleVector loc = followingObject.getLocation();
-            this.lookAt(new SimpleVector(loc.x, loc.y,0f));
+            this.lookAt(new SimpleVector(loc.x, loc.y,loc.z));
             if(loc.x - distanceFromOrigin.x > followDelay.x) {
                 distanceFromOrigin.x += followSpeed.x;
                 simulateCCUMovement = true;

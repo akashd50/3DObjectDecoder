@@ -38,7 +38,7 @@ public class BoxCollisionListener extends CollisionListener {
                 public void run() {
                    // try {
                         while (RUN) {
-                            System.out.println("checking collisions");
+                           // System.out.println("checking collisions");
                             for (SceneObject b : B) {
                                 if (checkCollision(A, b)) {
                                     //A.setVerticalAcc(0f);
@@ -66,13 +66,13 @@ public class BoxCollisionListener extends CollisionListener {
             if(colliderA ==null || colliderB==null) return false;
 
             if (Math.abs(colliderA.getLocation().x - colliderB.getLocation().x) < colliderA.getLength() / 2 + colliderB.getLength() / 2) {
-                System.out.println("Check X: " + (A.getLocation().x - B.getLocation().x) + "< " + (A.getLength() / 2 + B.getLength() / 2));
+               // System.out.println("Check X: " + (A.getLocation().x - B.getLocation().x) + "< " + (A.getLength() / 2 + B.getLength() / 2));
                 //check the Y axis
                 if (Math.abs(colliderA.getLocation().y - colliderB.getLocation().y) < colliderA.getHeight() / 2 + colliderB.getHeight() / 2) {
-                    System.out.println("Check Y: " + (A.getLocation().y - B.getLocation().y) + "< " + (A.getHeight() / 2 + B.getHeight() / 2));
+                   // System.out.println("Check Y: " + (A.getLocation().y - B.getLocation().y) + "< " + (A.getHeight() / 2 + B.getHeight() / 2));
                     //check the Z axis
                     if (Math.abs(colliderA.getLocation().z - colliderB.getLocation().z) < colliderA.getBreadth() / 2 + colliderB.getBreadth() / 2) {
-                        System.out.println("Check Z: " + (A.getLocation().z - B.getLocation().z) + "< " + (A.getBreadth() / 2 + B.getBreadth() / 2));
+                     //   System.out.println("Check Z: " + (A.getLocation().z - B.getLocation().z) + "< " + (A.getBreadth() / 2 + B.getBreadth() / 2));
                         return true;
                     }
                 }
