@@ -10,6 +10,8 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.akashapps.a3dobjectdecoder.UI.GLRenderer;
+import com.akashapps.a3dobjectdecoder.Utilities.Shader;
+import com.akashapps.a3dobjectdecoder.Utilities.Utilities;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -21,7 +23,6 @@ import java.nio.FloatBuffer;
 import java.util.ArrayList;
 
 public class Object3D extends SceneObject {
-
     private int id;
     private ArrayList<SimpleVector> vertices;
     private ArrayList<SimpleVector> normals;
@@ -41,39 +42,37 @@ public class Object3D extends SceneObject {
     private int mTextureId;
     //public float rotateX,rotateY,rotateZ, defRotX, defRotY, defRotZ, lAngleX, lAngleY, lAngleZ;
    // public float transformY,transformX,transformZ, scaleX,scaleY, scaleZ;
-    private float defTransX,defTransY, defTransZ, ambientLightVal, textureOpacity, originalLightAngleY;
+    private float defTransX;
+    private float defTransY;
+    private float defTransZ;
 
-    private SimpleVector NegX, PosX, NegY, PosY, NegZ, PosZ, mainlight, lightColor, location, rotation, scale;
+
+
+    private float shininess;
+    private float ambientLightVal;
+    private float textureOpacity;
+    private float originalLightAngleY;
+
+    private SimpleVector NegX, PosX, NegY, PosY, NegZ, PosZ, mainlight, lightColor, location, rotation, scale, eyeLocation;
     private static final String LIGHT_COLOR = "v_lightCol";
     private static final String AMBIENT_LIGHT = "v_ambient";
     private static final String OPACITY = "v_opacity";
+    private static final String SHININESS = "shininess";
     private static final String LiGHT_LOCATION = "v_VectorToLight";
+
+    private int DRAW_METHOD;
     private Collider collider;
 
-    private static String TPVERTEXSHADER =
+    /*private static String TPVERTEXSHADER =
                     "uniform mat4 u_Matrix;" +
                     "attribute vec4 a_Position;" +
-                  /*  "uniform vec3 u_lightCol;"+
-                    "varying vec3 v_lightCol;"+
-                    "uniform float u_opacity;"+
-                    "varying float v_opacity;"+
-                    "uniform float u_ambient;"+
-                    "varying float v_ambient;"+*/
                     "varying vec3 v_Normal;"+
-                    /*"uniform vec3 u_VectorToLight;"+
-                    "varying vec3 v_VectorToLight;"+*/
                     "attribute vec2 a_TextureCoordinates;" +
                     "varying vec2 v_TextureCoordinates;" +
                     "attribute vec3 a_Normal;"+
                     "void main()" +
                     "{" +
-                        //"v_opacity = u_opacity;"+
-                       // "v_ambient = u_ambient;"+
-                      //  "v_lightCol = u_lightCol;"+
-                      //  "v_VectorToLight = u_VectorToLight;"+
-
                         "v_Normal = normalize((u_Matrix * vec4(a_Normal,0.0)).xyz);"+
-
                         "v_TextureCoordinates = a_TextureCoordinates;" +
                         "gl_Position = u_Matrix * a_Position;" +
                     "}";
@@ -89,22 +88,11 @@ public class Object3D extends SceneObject {
                     "uniform vec3 v_VectorToLight;"+
                     "void main()" +
                     "{" +
-                        /*"vec3 inverseEye = normalize(vec3(0.0,0.0,-1.0));"+
-                        "vec3 specularLight = vec3(1.0,1.0,1.0);"+
-                        "vec3 vertexSRC = vec3(1.0,1.0,1.0);"+
-                        "float shininess = 2.0;"+*/
-
-                        //"vec3 inv_light = normalize(v_VectorToLight);"+
-
-                        //"vec3 lightReflectionDirection = reflect(vec3(0) - inv_light, scaledNormal);"+
-                        //"vec3 normalDotRef = max(0.0, dot(inverseEye, lightReflectionDirection));"+
-
                         "float diffuse = max(dot(v_Normal, v_VectorToLight), v_ambient);" +
                         "vec3 f_color = v_lightCol * diffuse;"+
                         "gl_FragColor = vec4(f_color,1.0)*texture2D(u_TextureUnit, v_TextureCoordinates);" +
-                            /*normalDotRef*normalDotRef*vertexSRC*specularLight +*/
                     "}";
-
+*/
     private Context context;
     public Object3D(int fileId, int texId, Context context){
         //lAngleX = 0f;lAngleY=0f;lAngleZ=1f;
@@ -140,7 +128,7 @@ public class Object3D extends SceneObject {
         verticesA = new float[drawConfig.size()*9];
         uvsA = new float[drawConfig.size()*6];
         normalsA = new float[drawConfig.size()*9];
-        //colors = new float[drawConfig.size()*12];
+
         reorganizeData();
         vertexCount = verticesA.length/COORDS_PER_VERTEX;
 
@@ -164,10 +152,16 @@ public class Object3D extends SceneObject {
         normalBuffer = nb.asFloatBuffer();
         normalBuffer.put(normalsA);
         normalBuffer.position(0);
-
-        generateProgram();
+        //generateProgram();
         loadTexture(context,texId);
+        DRAW_METHOD = 0;
     }
+    public void setRenderProgram(int p, int draw_method){
+        this.mProgram = p;
+        DRAW_METHOD = draw_method;
+        eyeLocation = new SimpleVector(0f,0f,0f);
+    }
+
     public ArrayList<Config> getConfiguration(){
         return drawConfig;
     }
@@ -192,6 +186,7 @@ public class Object3D extends SceneObject {
         normalBuffer.put(normals);
         normalBuffer.position(0);
     }
+    public void setEyeLocation(SimpleVector eye){eyeLocation.x=eye.x;eyeLocation.y=eye.y;eyeLocation.z=eye.z;}
 
     public void setVertexBuffer(FloatBuffer fb){
         vertexBuffer = fb;
@@ -314,8 +309,57 @@ public class Object3D extends SceneObject {
         }
     }
 
+    public void drawHelper2(float[] mMVPMatrix){
+        GLES20.glUseProgram(mProgram);
+        mMVPMatrixHandle = GLES20.glGetUniformLocation(mProgram, "u_Matrix");
+        GLES20.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, mMVPMatrix, 0);
+        int vectorToLight = GLES20.glGetUniformLocation(mProgram, LiGHT_LOCATION);
+        GLES20.glUniform3f(vectorToLight, mainlight.x, mainlight.y, mainlight.z);
 
+        int ambient = GLES20.glGetUniformLocation(mProgram, AMBIENT_LIGHT);
+        GLES20.glUniform1f(ambient, ambientLightVal);
 
+        int opacity = GLES20.glGetUniformLocation(mProgram, OPACITY);
+        GLES20.glUniform1f(opacity, textureOpacity);
+
+        int shin = GLES20.glGetUniformLocation(mProgram, SHININESS);
+        GLES20.glUniform1f(shin, shininess);
+
+        int eye = GLES20.glGetUniformLocation(mProgram, "inverseEye");
+        GLES20.glUniform3f(eye, eyeLocation.x,eyeLocation.y,eyeLocation.z);
+        //TO DO: convert the camera coordinates to the scene space by mul with the view matrix.
+        //
+
+        int lightCol = GLES20.glGetUniformLocation(mProgram, LIGHT_COLOR);
+        GLES20.glUniform3f(lightCol, lightColor.x, lightColor.y, lightColor.z);
+
+        textureUniform = GLES20.glGetUniformLocation(mProgram,"u_TextureUnit");
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures[0]);
+        GLES20.glUniform1i(textureUniform, 0);
+
+        mPositionHandle = GLES20.glGetAttribLocation(mProgram, "a_Position");
+        GLES20.glVertexAttribPointer(mPositionHandle, COORDS_PER_VERTEX,
+                GLES20.GL_FLOAT, false,
+                vertexStride, vertexBuffer);
+        GLES20.glEnableVertexAttribArray(mPositionHandle);
+
+        int normalHandle = GLES20.glGetAttribLocation(mProgram, "a_Normal");
+        GLES20.glVertexAttribPointer(normalHandle, 3,
+                GLES20.GL_FLOAT, true, 3*4,normalBuffer);
+        GLES20.glEnableVertexAttribArray(normalHandle);
+
+        mTextureBuffer.position(0);
+        aTextureHandle = GLES20.glGetAttribLocation(mProgram,"a_TextureCoordinates");
+        GLES20.glVertexAttribPointer(aTextureHandle,2,GLES20.GL_FLOAT,false,8,mTextureBuffer);
+        GLES20.glEnableVertexAttribArray(aTextureHandle);
+
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, vertexCount);
+        GLES20.glDisableVertexAttribArray(mPositionHandle);
+        GLES20.glDisableVertexAttribArray(normalHandle);
+        GLES20.glDisableVertexAttribArray(aTextureHandle);
+
+    }
     public void drawHelper(float[] mMVPMatrix){
         GLES20.glUseProgram(mProgram);
         // get handle to shape's transformation matrix
@@ -375,22 +419,29 @@ public class Object3D extends SceneObject {
         GLES20.glDisableVertexAttribArray(aTextureHandle);
 
     }
-
     public void onDrawFrame(float[] mMVPMatrix){
         float[] scratch = new float[16];
         float[] temp = new float[16];
 
         Matrix.setIdentityM(temp,0);
-        Matrix.translateM(temp,0,location.x,location.y,location.z);
+        if(super.followingObject!=null){
+            Matrix.translateM(temp, 0, followingObject.getLocation().x, location.y, location.z);
+        }else {
+            Matrix.translateM(temp, 0, location.x, location.y, location.z);
+        }
         Matrix.rotateM(temp, 0, rotation.x, 1, 0, 0);
         Matrix.rotateM(temp, 0, rotation.y, 0, 1, 0);
         Matrix.rotateM(temp, 0, rotation.z, 0, 0, 1);
         Matrix.scaleM(temp,0,scale.x, scale.y, scale.z);
 
         Matrix.multiplyMM(scratch,0,mMVPMatrix,0, temp,0);
-        drawHelper(scratch);
-    }
 
+        if(DRAW_METHOD == Shader.METHOD_1) {
+            drawHelper(scratch);
+        }else if(DRAW_METHOD == Shader.METHOD_2){
+            drawHelper2(scratch);
+        }
+    }
 
     public void rotateX(float angle){
         if(rotation.x+angle<=360) {
@@ -401,7 +452,13 @@ public class Object3D extends SceneObject {
             rotation.x = angle;
         }
     }
+    public float getShininess() {
+        return shininess;
+    }
 
+    public void setShininess(float shininess) {
+        this.shininess = shininess;
+    }
     public void setMainLight(SimpleVector l){
         mainlight.x = l.x;
         mainlight.y = l.y;
@@ -449,9 +506,6 @@ public class Object3D extends SceneObject {
             angle = angle - temp;
             rotation.y = angle;
         }
-
-       // mainlight.x = (float)Math.sin(originalLightAngleY-rotation.y*Math.PI/180);
-       // mainlight.y = (float)Math.cos(originalLightAngleY-rotation.y*Math.PI/180);
     }
 
     public void rotateZ(float angle){
@@ -534,7 +588,7 @@ public class Object3D extends SceneObject {
 
         return textures[0];
     }
-    private void generateProgram() {
+    /*private void generateProgram() {
         //  if(mProgram==0) {
         int vertexShad = GLRenderer.loadShader(GLES20.GL_VERTEX_SHADER,
                 TPVERTEXSHADER);
@@ -554,7 +608,7 @@ public class Object3D extends SceneObject {
         GLES20.glLinkProgram(mProgram);
         //  }
     }
-
+*/
    /* public SimpleVector getFront() {
         return PosZ;
     }
@@ -623,6 +677,9 @@ public class Object3D extends SceneObject {
 
     public void setRotation(SimpleVector r){
         rotation.x = r.x;rotation.y = r.y;rotation.z =  r.z;
+    }
+    public int getDrawMethod(){
+        return this.DRAW_METHOD;
     }
 
     public void setHeight(float y){

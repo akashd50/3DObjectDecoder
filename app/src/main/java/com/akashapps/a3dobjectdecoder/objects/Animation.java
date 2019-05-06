@@ -206,7 +206,9 @@ public class Animation {
         }
         return vertexBuffer[currentAnimatingFrame++];
     }
-
+    public void resetAnimation(){
+        currentAnimatingFrame = 0;
+    }
     public void setIndeterminate(boolean indeterminate) {
         this.indeterminate = indeterminate;
     }
@@ -219,7 +221,7 @@ public class Animation {
         if(indeterminate){
             return false;
         }else {
-            if(currentAnimatingFrame > numFrames){
+            if(currentAnimatingFrame > numFrames-2){
                 return true;
             }else{
                 return false;

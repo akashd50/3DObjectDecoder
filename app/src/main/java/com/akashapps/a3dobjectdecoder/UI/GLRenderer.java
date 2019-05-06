@@ -38,7 +38,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     public static Logger logger = Logger.getGlobal();
     public static float SCRWID, SCRHEIGHT, RATIO, screenTop,screenBottom;
     private ObjDecoder cube;
-    private Object3D cube2;
+    private Object3D cube2, cube3;
     private Cube c;
   //  private TextDecoder textDecoder;
 
@@ -78,13 +78,26 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         //cube = new ObjDecoder(R.raw.android_experiment, R.drawable.rickuii, context);
         //cube.scale(-0.5f,-0.5f);
        // textDecoder = new TextDecoder(context);
+        int program = Shader.generateShadersAndProgram(Shader.O3DVERTEXSHADER, Shader.O3DFRAGMENTSHADER);
+        int refProgram = Shader.generateShadersAndProgram(Shader.REFLECTVERTEXSHADER, Shader.REFLECTFRAGMENTSHADER);
 
-        cube2 = new Object3D(R.raw.android_experiment, R.drawable.rickuii, context);
-        cube2.setMainLight(new SimpleVector(1f,1f,0.5f));
+        cube2 = new Object3D(R.raw.gunhandle_i, R.drawable.rickuii, context);
+        cube3 = new Object3D(R.raw.gunmettalic_i, R.drawable.rickuii, context);
+        cube2.setMainLight(new SimpleVector(-1f,0f,-0.5f));
+        cube3.setMainLight(new SimpleVector(-1f,0f,-0.5f));
+        cube2.setRenderProgram(program, Shader.METHOD_1);
+        cube3.setRenderProgram(refProgram, Shader.METHOD_2);
+
+        cube2.setShininess(2.0f);
+        cube3.setShininess(5.0f);
+        cube2.setTextureOpacity(1.0f);
+        cube3.setTextureOpacity(1.0f);
+
         System.out.println("================================== L|B|H+======"+cube2.getLength()+
                 "=="+cube2.getBreadth()+"=="+cube2.getHeight());
 
         cube2.setLocation(new SimpleVector(0f,0f,-3f));
+        cube3.setLocation(new SimpleVector(0f,0f,-3f));
 
     }
 
@@ -109,17 +122,24 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         if(controller.rotationalTurnY!=0){
             //cube.rotateX((float)(controller.rotationalTurnY*(180/Math.PI)));
             cube2.rotateX((float)(controller.rotationalTurnY*(180/Math.PI)));
+            cube3.rotateX((float)(controller.rotationalTurnY*(180/Math.PI)));
+
             controller.rotationalTurnY = 0;
         }
         if(controller.rotationTurnX!=0){
             //cube.rotateY((float)(controller.rotationTurnX*(180/Math.PI)));
             cube2.rotateY((float)(controller.rotationTurnX*(180/Math.PI)));
+            cube3.rotateY((float)(controller.rotationTurnX*(180/Math.PI)));
             controller.rotationTurnX = 0;
         }
 
         //cube.rotateY(0.09f);
         //cube.onDrawFrame(mMVPMatrix);
+        cube2.setEyeLocation(new SimpleVector(0f,0f,-defaultCamZ));
+        cube3.setEyeLocation(new SimpleVector(0f,0f,-defaultCamZ));
+
         cube2.onDrawFrame(mMVPMatrix);
+        cube3.onDrawFrame(mMVPMatrix);
        // c.draw(mMVPMatrix);
 
         //drawJPCTStuff();

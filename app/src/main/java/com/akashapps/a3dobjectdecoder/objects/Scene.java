@@ -28,11 +28,18 @@ public class Scene {
         }*/
     }
 
+    public void setEyeLocation(SimpleVector loc){
+        for(SceneObject s: objects){
+            if(s instanceof Object3D) {
+                if(((Object3D) s).getDrawMethod() == 2 ) ((Object3D) s).setEyeLocation(loc);
+            }
+        }
+    }
+
     public void rotateSceneX(float x){
         for(SceneObject s: objects){
 
         }
-
     }
 
     public void setSceneLight(SimpleVector light){

@@ -2,12 +2,14 @@ package com.akashapps.a3dobjectdecoder.UI;
 
 import android.content.Context;
 import android.content.res.AssetManager;
+import android.graphics.Color;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
 import android.view.MotionEvent;
 
 import com.akashapps.a3dobjectdecoder.R;
+import com.akashapps.a3dobjectdecoder.Utilities.Shader;
 import com.akashapps.a3dobjectdecoder.Utilities.TextDecoder;
 import com.akashapps.a3dobjectdecoder.Utilities.Utilities;
 import com.akashapps.a3dobjectdecoder.logic.BoxCollisionListener;
@@ -18,10 +20,14 @@ import com.akashapps.a3dobjectdecoder.objects.Animation;
 import com.akashapps.a3dobjectdecoder.objects.BoxCollider;
 import com.akashapps.a3dobjectdecoder.objects.Button;
 import com.akashapps.a3dobjectdecoder.objects.Camera;
+import com.akashapps.a3dobjectdecoder.objects.CustomParticles;
 import com.akashapps.a3dobjectdecoder.objects.Object3D;
+import com.akashapps.a3dobjectdecoder.objects.ParticleSystem;
+import com.akashapps.a3dobjectdecoder.objects.ParticleSystemV2;
 import com.akashapps.a3dobjectdecoder.objects.Scene;
 import com.akashapps.a3dobjectdecoder.logic.TouchController;
 import com.akashapps.a3dobjectdecoder.objects.DPad;
+import com.akashapps.a3dobjectdecoder.objects.SceneObject;
 import com.akashapps.a3dobjectdecoder.objects.SimpleVector;
 
 import java.io.IOException;
@@ -61,6 +67,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
     private boolean isReady;
     private AnimatedObject mainCharacter;
     private Animation sample, punch;
+    private ParticleSystemV2 particleSystem;
 
     public MainGameRenderer(Context ctx, TouchController controller) {
         this.context = ctx;
@@ -104,7 +111,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         camera.setMatrices(new float[16],mProjectionMatrix,new float[16]);
         camera.setPosition(new SimpleVector(0f,2f,5f));
         camera.lookAt(new SimpleVector(0f,0f,0f));
-        camera.setFollowSpeed(new SimpleVector(0.1f,0f,0f));
+        camera.setFollowSpeed(new SimpleVector(0.04f,0f,0f));
         camera.setFollowDelay(new SimpleVector(1.5f,0f,0f));
         isReady = true;
     }
@@ -123,8 +130,10 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         firstScene = new Scene();
         characterGround = new CollisionHandler();
         listener = new BoxCollisionListener(characterGround);
-
+        int program = Shader.generateShadersAndProgram(Shader.O3DVERTEXSHADER, Shader.O3DFRAGMENTSHADER);
+        int refProgram = Shader.generateShadersAndProgram(Shader.REFLECTVERTEXSHADER, Shader.REFLECTFRAGMENTSHADER);
         float tx = START_X;
+        SimpleVector lightDirRight = new SimpleVector(-0.5f,0.5f,1f);
 
         for(int i = 0;i<20;i++) {
             Object3D block = new Object3D(R.raw.sidewalk_block, R.drawable.side_block, context);
@@ -134,6 +143,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             block.setHeight(0.5f);
             block.setBredth(4f);
             block.setLocation(new SimpleVector(tx, START_Y, 0f));
+            block.setRenderProgram(refProgram, Shader.METHOD_2);
 
             listener.addCollisionObjects(block);
             tx+=2f;
@@ -145,6 +155,8 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         house.setHeight(8f);
         house.setBredth(8f);
         house.setLocation(new SimpleVector(START_X+7f,START_Y,START_Z-4f-5f));
+        house.setRenderProgram(program, Shader.METHOD_1);
+
         firstScene.addSceneObject(house);
 
         Object3D skybox= new Object3D(R.raw.skybox_i,R.drawable.sky_t, context);
@@ -152,13 +164,17 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         skybox.setHeight(100f);
         skybox.setBredth(100f);
         skybox.setLocation(new SimpleVector(START_X+7f,START_Y,START_Z-10f));
+        skybox.setRenderProgram(program, Shader.METHOD_1);
+
         firstScene.addSceneObject(skybox);
+
         tx = START_X+5f;
         for(int i=0;i<5;i++) {
             Object3D ground = new Object3D(R.raw.ground_i,R.drawable.rickuii, context);
             ground.setLength(10f);
             ground.setBredth(13f);
             ground.setLocation(new SimpleVector(tx,START_Y,-7f));
+            ground.setRenderProgram(program, Shader.METHOD_1);
             firstScene.addSceneObject(ground);
             tx+=10f;
         }
@@ -169,6 +185,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             fence.setLength(10f);
             fence.setBredth(0.1f);
             fence.setLocation(new SimpleVector(tx,START_Y,-14f));
+            fence.setRenderProgram(program, Shader.METHOD_1);
             firstScene.addSceneObject(fence);
             tx+=10f;
         }
@@ -179,14 +196,17 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             road.setLength(10f);
             road.setBredth(10f);
             road.setLocation(new SimpleVector(tx, START_Y, 7f));
+            road.setRenderProgram(program, Shader.METHOD_1);
             firstScene.addSceneObject(road);
             tx+=10f;
         }
 
         AssetManager am = context.getAssets();
         mainCharacter = new AnimatedObject(R.raw.person_model_i, R.drawable.rickuii,context);
+        skybox.follow(mainCharacter);
+        mainCharacter.setRenderProgram(program);
 
-        sample = mainCharacter.addAnimation(50);
+        sample = mainCharacter.addAnimation(50, true);
         try{
             String path = "anim_walk/";
             String name = "anim_sample_0000";
@@ -201,7 +221,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         }catch (IOException e){
             e.printStackTrace();
         }
-        punch = mainCharacter.addAnimation(40);
+        punch = mainCharacter.addAnimation(40, false);
         try{
             String path = "anim_punch/";
             String name = "anim_sample_0000";
@@ -229,8 +249,17 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         mainCharacter.setGravity(true);
         camera.follow(mainCharacter);
 
-        firstScene.setSceneLight(new SimpleVector(0.7f,0.77f,0.7f));
-        mainCharacter.setMainLight(new SimpleVector(0.7f,0.7f,0.7f));
+        firstScene.setSceneLight(new SimpleVector(0.5f,0.5f,-1f));
+        skybox.setMainLight(new SimpleVector(0f,-1f,-0.5f));
+        mainCharacter.setMainLight(new SimpleVector(0.5f,-1f,-0.5f));
+        //house.setMainLight(lightDirRight);
+
+        particleSystem = new ParticleSystemV2(2000);
+        particleSystem.setBlendType(ParticleSystemV2.LIGHT_BLEND);
+        particleSystem.setPointerSize(20f);
+        particleSystem.setTimeOnScreen(4f);
+        particleSystem.generateShadersAndProgram();
+        particleSystem.loadTexture(context, R.drawable.q_particle_v);
     }
 
     @Override
@@ -238,7 +267,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         previousFrameTime = System.nanoTime();
         GLES20.glClearColor(((float)0/255), (float)0/255, (float)0/255,1f);
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
-        GLES20.glClearDepthf(1.0f);
+        //GLES20.glClearDepthf(1.0f);
 
         camera.updatePinchZoom();
         camera.updateView();
@@ -263,24 +292,52 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
                     if(rotY<90){
                         mainCharacter.getMain().rotateY(10f);
                     }
+                    particleSystem.addParticles(40, Color.rgb(200,100,40),
+                            new SimpleVector(mainCharacter.getLocation().x,
+                                    mainCharacter.getLocation().y-mainCharacter.getHeight()/5,
+                                    mainCharacter.getLocation().z),
+                            new SimpleVector(0f, 0.1f,0.3f),
+                            new SimpleVector(-0.5f,0.2f,0.0f),
+                            new SimpleVector(1f,1f,0f));
                 }else{
                     if(rotY>-90){
                         mainCharacter.getMain().rotateY(-10f);
                     }
+                    particleSystem.addParticles(40, Color.rgb(200,100,40),
+                            new SimpleVector(mainCharacter.getLocation().x,
+                                    mainCharacter.getLocation().y-mainCharacter.getHeight()/5,
+                                    mainCharacter.getLocation().z),
+                            new SimpleVector(0f, 0.1f,0.3f),
+                            new SimpleVector(0.5f,0.2f,0.0f),
+                            new SimpleVector(1f,1f,0f));
                 }
                 mainCharacter.setHorizontalVel(dPad.activeDpadX*0.25f);
                 mainCharacter.setAnimationTBPlayed(sample.getID());
-                mainCharacter.animate(mainMatrix);
 
+              /* particleSystem.addParticle(new SimpleVector(mainCharacter.getLocation().x,
+                        mainCharacter.getLocation().y-mainCharacter.getHeight()/2,mainCharacter.getLocation().z),
+                       Color.rgb(200,100,40),
+                        new SimpleVector(0f,1.0f,0.0f));*/
+
+                mainCharacter.animate(mainMatrix);
             }
+
+           /* particleSystem.addParticles(30, Color.rgb(200,100,40),
+                    new SimpleVector(2f,
+                            2f,0f),
+                    new SimpleVector(0f, 0f,0.3f),
+                    new SimpleVector(-0.5f,0f,0.0f),
+                    new SimpleVector(1f,1f,0f));*/
+
         }else if(punchButton.isClicked()){
             mainCharacter.setAnimationTBPlayed(punch.getID());
             mainCharacter.animate(mainMatrix);
         } else{
             mainCharacter.onDrawFrame(mainMatrix);
         }
-
+        firstScene.setEyeLocation(new SimpleVector(-camera.getPosition().x, -camera.getPosition().y, -camera.getPosition().z));
         firstScene.onDrawFrame(mainMatrix);
+        particleSystem.onDrawFrame(mainMatrix);
         customUIDrawing();
 
         currentFrameTime = System.nanoTime();
@@ -324,4 +381,6 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
     public void onTouchMove(MotionEvent event){
         sceneControlHandler.onTouchMove(event.getX(), event.getY());
     }
+
+
 }

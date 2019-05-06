@@ -35,8 +35,9 @@ public class AnimatedObject extends SceneObject{
         firstObject = new Object3D(fileID, textureID, context);
     }
 
-    public Animation addAnimation(int numFrames){
+    public Animation addAnimation(int numFrames, boolean indeterminate){
         Animation a = new Animation(numFrames, firstObject.getConfiguration(), context);
+        a.setIndeterminate(indeterminate);
         animations.put(a.getID(), a);
         return a;
     }
@@ -55,30 +56,36 @@ public class AnimatedObject extends SceneObject{
     public void onDrawFrame(float[] mMVPMatrix){
         //gravity
         firstObject.updateLocation(new SimpleVector(super.horizontalAcc,super.verticalAcc,0f));
-
-        if(currArrayFrame!=0) {
-            firstObject.resetVertexBufferTD();
-            //firstObject.resetNormalBufferTD();
-            currArrayFrame = 0;
+        if (currentlyPlayingAnimation != null) {
+            if (currentlyPlayingAnimation.isFinished()) {
+                firstObject.resetVertexBufferTD();
+                currentlyPlayingAnimation = null;
+                currentlyPlaying = 0;
+                firstObject.onDrawFrame(mMVPMatrix);
+            } else {
+                if(currentlyPlayingAnimation.isIndeterminate()) {
+                    firstObject.resetVertexBufferTD();
+                    currentlyPlayingAnimation.resetAnimation();
+                    currentlyPlayingAnimation = null;
+                    currentlyPlaying = 0;
+                    firstObject.onDrawFrame(mMVPMatrix);
+                }else{
+                    animate(mMVPMatrix);
+                }
+            }
+        }else{
+            firstObject.onDrawFrame(mMVPMatrix);
         }
 
-        firstObject.onDrawFrame(mMVPMatrix);
     }
 
     public void animate(float[] mMVPMatrix){
         //gravity
         firstObject.updateLocation(new SimpleVector(super.horizontalAcc,super.verticalAcc,0f));
         firstObject.onDrawFrame(mMVPMatrix);
-
-       /* if (currArrayFrame > frameNum-1) {
-            currArrayFrame = 0;
-            firstObject.resetVertexBufferTD();
-           // firstObject.resetNormalBufferTD();
-        } else {*/
+        if(currentlyPlayingAnimation!=null) {
             firstObject.setVertexBuffer(currentlyPlayingAnimation.getNextFrame());
-            //firstObject.setNormalBuffer(normalBuffer[currArrayFrame]);
-            //currArrayFrame++;
-        //}
+        }
     }
 
     public void setMainLight(SimpleVector l){
@@ -99,7 +106,9 @@ public class AnimatedObject extends SceneObject{
     public float getHeight(){return firstObject.getHeight();}
     public Collider getCollider(){return firstObject.getCollider();}
     public void setCollider(Collider c){firstObject.setCollider(c);}
-
+    public void setRenderProgram(int p){
+        firstObject.setRenderProgram(p, 1);
+    }
     public void setLocation(SimpleVector s){
         firstObject.setLocation(s);
     }

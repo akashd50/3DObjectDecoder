@@ -6,6 +6,8 @@ public abstract class SceneObject {
     public static float DEFAULT_GRAVITY_UPDATE = -0.001f;
     public static float DEFAULT_HORIZONTAL_DRAG = 0.01f;
 
+    protected SceneObject followingObject;
+
     public abstract void onDrawFrame(float[] mMVPMatrix);
     public abstract void setMainLight(SimpleVector light);
     public abstract SimpleVector getLocation();
@@ -34,6 +36,9 @@ public abstract class SceneObject {
             horizontalAcc += f;
             if(horizontalAcc>-DEFAULT_HORIZONTAL_DRAG) horizontalAcc=0f;
         }
+    }
+    public void follow(SceneObject s){
+        this.followingObject = s;
     }
     public float getHorizontalVel() {
         return horizontalAcc;
