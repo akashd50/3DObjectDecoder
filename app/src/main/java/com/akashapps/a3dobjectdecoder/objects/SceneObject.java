@@ -37,6 +37,9 @@ public abstract class SceneObject {
             if(horizontalAcc>-DEFAULT_HORIZONTAL_DRAG) horizontalAcc=0f;
         }
     }
+    public abstract void rotateX(float x);
+    public abstract void rotateY(float x);
+    public abstract void rotateZ(float x);
     public void follow(SceneObject s){
         this.followingObject = s;
     }

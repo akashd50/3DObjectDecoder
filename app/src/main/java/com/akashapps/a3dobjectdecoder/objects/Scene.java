@@ -38,7 +38,12 @@ public class Scene {
 
     public void rotateSceneX(float x){
         for(SceneObject s: objects){
-
+            s.rotateX(x);
+        }
+    }
+    public void rotateSceneY(float x){
+        for(SceneObject s: objects){
+            s.rotateY(x);
         }
     }
 

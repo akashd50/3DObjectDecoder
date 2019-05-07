@@ -70,4 +70,8 @@ public class Person extends SceneObject {
     }
 
     public Object3D getMain(){return main;}
+
+    public  void rotateX(float x){}
+    public  void rotateY(float x){}
+    public  void rotateZ(float x){}
 }

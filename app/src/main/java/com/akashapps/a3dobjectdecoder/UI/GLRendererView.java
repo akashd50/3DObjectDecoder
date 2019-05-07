@@ -10,7 +10,7 @@ public class GLRendererView extends GLSurfaceView{
     private static GLRenderer mRenderer;
     public static TouchController touchController;
     //private Utilities utilities;
-    public GLRendererView(Context context){
+    public GLRendererView(Context context, int objID){
         super(context);
         //setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
         // Create an OpenGL ES 2.0 context
@@ -33,7 +33,7 @@ public class GLRendererView extends GLSurfaceView{
                 return configs[0];
             }
         });*/
-        mRenderer = new GLRenderer(context, touchController);
+        mRenderer = new GLRenderer(context, touchController, objID);
 
         // Set the Renderer for drawing on the GLSurfaceView
         setRenderer(mRenderer);

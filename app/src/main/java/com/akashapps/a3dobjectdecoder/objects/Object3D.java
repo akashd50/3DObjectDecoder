@@ -39,6 +39,7 @@ public class Object3D extends SceneObject {
     private int mMVPMatrixHandle, aTextureHandle, textureUniform;
     private FloatBuffer mTextureBuffer;
     private int[] textures = new int[1];
+    private float[] transformationMatrix;
     private int mTextureId;
     //public float rotateX,rotateY,rotateZ, defRotX, defRotY, defRotZ, lAngleX, lAngleY, lAngleZ;
    // public float transformY,transformX,transformZ, scaleX,scaleY, scaleZ;
@@ -96,6 +97,7 @@ public class Object3D extends SceneObject {
     private Context context;
     public Object3D(int fileId, int texId, Context context){
         //lAngleX = 0f;lAngleY=0f;lAngleZ=1f;
+        transformationMatrix = new float[16];
         location = new SimpleVector(0f,0f,0f);
         rotation = new SimpleVector(0f,0f,0f);
         lightColor = new SimpleVector(1f,1f,1f);
@@ -214,6 +216,8 @@ public class Object3D extends SceneObject {
             uvsA[uvCounter++] = uvs.get(c.t1-1).x;
             uvsA[uvCounter++] = uvs.get(c.t1-1).y;
 
+          //  System.out.println(v1 + " normal: "+normal + " uv: "+uvs.get(c.t1-1));
+
             SimpleVector v2 = vertices.get(c.v2-1);
             verticesA[arrayCounter++] = v2.x;
             verticesA[arrayCounter++] = v2.y;
@@ -226,6 +230,8 @@ public class Object3D extends SceneObject {
             normalsA[normalCounter++] = normal.y;
             normalsA[normalCounter++] = normal.z;
 
+          ///  System.out.println(v2 + " normal: "+normal + " uv: "+uvs.get(c.t2-1));
+
             SimpleVector v3 = vertices.get(c.v3-1);
             verticesA[arrayCounter++] = v3.x;
             verticesA[arrayCounter++] = v3.y;
@@ -237,6 +243,8 @@ public class Object3D extends SceneObject {
             normalsA[normalCounter++] = normal.x;
             normalsA[normalCounter++] = normal.y;
             normalsA[normalCounter++] = normal.z;
+
+          //  System.out.println(v3 + " normal: "+normal + " uv: "+uvs.get(c.t3-1));
         }
 
     }
@@ -313,6 +321,10 @@ public class Object3D extends SceneObject {
         GLES20.glUseProgram(mProgram);
         mMVPMatrixHandle = GLES20.glGetUniformLocation(mProgram, "u_Matrix");
         GLES20.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, mMVPMatrix, 0);
+
+        int trMatrix = GLES20.glGetUniformLocation(mProgram, "transformation_matrix");
+        GLES20.glUniformMatrix4fv(trMatrix , 1, false, transformationMatrix, 0);
+
         int vectorToLight = GLES20.glGetUniformLocation(mProgram, LiGHT_LOCATION);
         GLES20.glUniform3f(vectorToLight, mainlight.x, mainlight.y, mainlight.z);
 
@@ -324,6 +336,8 @@ public class Object3D extends SceneObject {
 
         int shin = GLES20.glGetUniformLocation(mProgram, SHININESS);
         GLES20.glUniform1f(shin, shininess);
+
+       // eyeLocation.x = 0f;eyeLocation.y=0f;eyeLocation.z=-1f;
 
         int eye = GLES20.glGetUniformLocation(mProgram, "inverseEye");
         GLES20.glUniform3f(eye, eyeLocation.x,eyeLocation.y,eyeLocation.z);
@@ -421,20 +435,20 @@ public class Object3D extends SceneObject {
     }
     public void onDrawFrame(float[] mMVPMatrix){
         float[] scratch = new float[16];
-        float[] temp = new float[16];
+        //float[] temp = new float[16];
 
-        Matrix.setIdentityM(temp,0);
+        Matrix.setIdentityM(transformationMatrix,0);
         if(super.followingObject!=null){
-            Matrix.translateM(temp, 0, followingObject.getLocation().x, location.y, location.z);
+            Matrix.translateM(transformationMatrix, 0, followingObject.getLocation().x, location.y, location.z);
         }else {
-            Matrix.translateM(temp, 0, location.x, location.y, location.z);
+            Matrix.translateM(transformationMatrix, 0, location.x, location.y, location.z);
         }
-        Matrix.rotateM(temp, 0, rotation.x, 1, 0, 0);
-        Matrix.rotateM(temp, 0, rotation.y, 0, 1, 0);
-        Matrix.rotateM(temp, 0, rotation.z, 0, 0, 1);
-        Matrix.scaleM(temp,0,scale.x, scale.y, scale.z);
+        Matrix.rotateM(transformationMatrix, 0, rotation.x, 1, 0, 0);
+        Matrix.rotateM(transformationMatrix, 0, rotation.y, 0, 1, 0);
+        Matrix.rotateM(transformationMatrix, 0, rotation.z, 0, 0, 1);
+        Matrix.scaleM(transformationMatrix,0,scale.x, scale.y, scale.z);
 
-        Matrix.multiplyMM(scratch,0,mMVPMatrix,0, temp,0);
+        Matrix.multiplyMM(scratch,0,mMVPMatrix,0, transformationMatrix,0);
 
         if(DRAW_METHOD == Shader.METHOD_1) {
             drawHelper(scratch);

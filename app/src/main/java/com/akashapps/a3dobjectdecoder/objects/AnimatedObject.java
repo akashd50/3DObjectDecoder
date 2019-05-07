@@ -120,4 +120,8 @@ public class AnimatedObject extends SceneObject{
         return firstObject;
     }
 
+    public void rotateX(float x){firstObject.rotateX(x);}
+    public void rotateY(float x){firstObject.rotateY(x);}
+    public void rotateZ(float x){firstObject.rotateZ(x);}
+
 }

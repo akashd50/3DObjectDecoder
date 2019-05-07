@@ -13,10 +13,6 @@ public class SimpleVector {
         this.z = z;
     }
 
-    public String toString(){
-        return "["+x+", "+y+", "+z+"]";
-    }
-
     public static SimpleVector minX(SimpleVector s1, SimpleVector s2, SimpleVector s3){
         if(s1.x<s2.x){
             if(s1.x<s3.x){
@@ -114,5 +110,9 @@ public class SimpleVector {
         float z = s.z = this.z;
         float difference = (float)Math.sqrt(x*x + y*y + z*z);
         return difference;
+    }
+
+    public String toString(){
+        return "("+x+", "+y+", "+z+")";
     }
 }

@@ -76,6 +76,8 @@ public class Camera {
         Matrix.multiplyMM(mMVPMatrix, 0, projectionMatrix, 0, viewMatrix, 0);
     }
 
+    public float[] getPrimViewMatrix(){return viewMatrix;}
+
     public void doCircularShow(){
         SimpleVector controllerMod = new SimpleVector();
         controllerMod.x = touchController.getTouchX() - touchController.getTouchPrevX();

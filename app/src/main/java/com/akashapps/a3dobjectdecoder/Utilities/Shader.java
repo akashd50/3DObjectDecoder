@@ -7,6 +7,7 @@ public class Shader {
     public static final int METHOD_2 = 2;
     public static final String REFLECTVERTEXSHADER =
                     "uniform mat4 u_Matrix;" +
+                    "uniform mat4 transformation_matrix;"+
                     "attribute vec4 a_Position;" +
                    /* "uniform vec3 u_lightCol;"+
                     "varying vec3 v_lightCol;"+
@@ -17,16 +18,15 @@ public class Shader {
                     "varying vec3 v_Normal;"+
                    // "uniform vec3 u_VectorToLight;"+
                 //    "varying vec4 v_VectorToLight;"+
+                    "varying vec3 mvp_normal;"+
                     "attribute vec2 a_TextureCoordinates;" +
                     "varying vec2 v_TextureCoordinates;" +
                     "attribute vec3 a_Normal;"+
                     "void main()" +
                     "{" +
-                     //   "v_opacity = u_opacity;"+
-                      //  "v_ambient = u_ambient;"+
-                       // "v_lightCol = u_lightCol;"+
                        // "v_VectorToLight = vec4(u_VectorToLight,0.0);"+
-                        "v_Normal = normalize((u_Matrix * vec4(a_Normal,0.0)).xyz);"+
+                        "mvp_normal = normalize((u_Matrix * vec4(a_Normal,0.0)).xyz);"+
+                        "v_Normal = normalize((transformation_matrix * vec4(a_Normal,0.0)).xyz);"+
                         "v_TextureCoordinates = a_TextureCoordinates;" +
                         "gl_Position = u_Matrix * a_Position;" +
                     "}";
@@ -39,6 +39,7 @@ public class Shader {
                     "uniform float v_ambient;"+
                     "uniform vec3 inverseEye;"+
                     "uniform float shininess;"+
+                    "varying vec3 mvp_normal;"+
                     "uniform sampler2D u_TextureUnit;" +
                     "varying vec2 v_TextureCoordinates;" +
                     "uniform vec3 v_VectorToLight;"+
@@ -48,16 +49,16 @@ public class Shader {
                         "vec3 specularLight = vec3(0.1,0.1,0.1);"+
                         "vec3 vertexSRC = vec3(1.0,1.0,1.0);"+
                         //"float shininess = 4.0;"+
-                        "vec3 inv_light = normalize(v_VectorToLight);"+
+                        "vec3 inv_light = vec3(0) - v_VectorToLight;"+
 
-                        "vec3 lightReflectionDirection = reflect(vec3(0) - v_VectorToLight, v_Normal);"+
+                        "vec3 lightReflectionDirection = reflect(inv_light, mvp_normal);"+
 
-                        "vec3 invEye = normalize(inverseEye);"+
-                        "float normalDotRef = max(v_opacity, dot(invEye, lightReflectionDirection));"+
+                        //"vec3 invEye = normalize(inverseEye);"+
+                        "float normalDotRef = max(v_opacity, dot(normalize(inverseEye), lightReflectionDirection));"+
 
-                        "float diffuse = max(dot(v_Normal, v_VectorToLight), v_ambient);" +
+                        "float diffuse = max(dot(v_Normal, normalize(v_VectorToLight)), v_ambient);" +
                         "vec3 f_color = v_lightCol * diffuse;"+
-                        "gl_FragColor =  pow(normalDotRef,shininess)*vec4(f_color,1.0)*texture2D(u_TextureUnit, v_TextureCoordinates);" +
+                        "gl_FragColor =  pow(normalDotRef,shininess)*vec4(f_color,v_opacity)*texture2D(u_TextureUnit, v_TextureCoordinates);" +
                         /*normalDotRef*normalDotRef*vertexSRC*specularLight +*/
                     "}";
     public static final String O3DVERTEXSHADER =

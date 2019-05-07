@@ -18,10 +18,11 @@ public class GLRendererActivity extends Activity {
         /*if (activityManager != null) {
             copy(activityManager);
         }*/
+        int id = getIntent().getIntExtra("id",0);
         instance = GLRendererActivity.this;
         context = this;
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-        glRendererView = new GLRendererView(getApplication());
+        glRendererView = new GLRendererView(getApplication(), id);
         setContentView(glRendererView);
     }
 

@@ -95,7 +95,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         //Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 3, 10);
         Matrix.orthoM(uiProjectionMatrix, 0, -ratio, ratio, -1, 1, 1, 10);
         //Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 1, 10);
-        GLES20.glDepthMask( true );
+       // GLES20.glDepthMask( true );
         GLES20.glEnable( GLES20.GL_DEPTH_TEST );
         GLES20.glDepthFunc( GLES20.GL_LESS);
 
@@ -103,7 +103,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         //GLES20.glBlendFunc( GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA );
 
         GLES20.glEnable(GLES20.GL_CULL_FACE);
-        GLES20.glCullFace(GLES20.GL_FRONT_FACE);
+        //GLES20.glCullFace(GLES20.GL_FRONT_FACE);
 
         initializeUIElements();
         initializeGameObjects();
@@ -144,6 +144,8 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             block.setBredth(4f);
             block.setLocation(new SimpleVector(tx, START_Y, 0f));
             block.setRenderProgram(refProgram, Shader.METHOD_2);
+            block.setTextureOpacity(1f);
+            block.setShininess(0.5f);
 
             listener.addCollisionObjects(block);
             tx+=2f;
@@ -155,7 +157,9 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         house.setHeight(8f);
         house.setBredth(8f);
         house.setLocation(new SimpleVector(START_X+7f,START_Y,START_Z-4f-5f));
-        house.setRenderProgram(program, Shader.METHOD_1);
+        house.setRenderProgram(refProgram, Shader.METHOD_2);
+        house.setTextureOpacity(1f);
+        house.setShininess(2f);
 
         firstScene.addSceneObject(house);
 
@@ -164,7 +168,9 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         skybox.setHeight(100f);
         skybox.setBredth(100f);
         skybox.setLocation(new SimpleVector(START_X+7f,START_Y,START_Z-10f));
-        skybox.setRenderProgram(program, Shader.METHOD_1);
+        skybox.setRenderProgram(refProgram, Shader.METHOD_2);
+        skybox.setTextureOpacity(1f);
+        skybox.setShininess(0f);
 
         firstScene.addSceneObject(skybox);
 
@@ -174,8 +180,25 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             ground.setLength(10f);
             ground.setBredth(13f);
             ground.setLocation(new SimpleVector(tx,START_Y,-7f));
-            ground.setRenderProgram(program, Shader.METHOD_1);
+            ground.setRenderProgram(refProgram, Shader.METHOD_2);
+            ground.setTextureOpacity(1f);
+            ground.setShininess(0.5f);
+
             firstScene.addSceneObject(ground);
+            tx+=10f;
+        }
+
+        tx = START_X+15f;
+        for(int i=0;i<5;i++) {
+            Object3D tree = new Object3D(R.raw.tree_i,R.drawable.rickuii, context);
+            tree.setLength(5f);
+            tree.setBredth(5f);
+            tree.setHeight(7f);
+            tree.setLocation(new SimpleVector(tx,START_Y,-5f));
+            tree.setRenderProgram(refProgram, Shader.METHOD_2);
+            tree.setTextureOpacity(1f);
+            tree.setShininess(0f);
+            firstScene.addSceneObject(tree);
             tx+=10f;
         }
 
@@ -185,7 +208,9 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             fence.setLength(10f);
             fence.setBredth(0.1f);
             fence.setLocation(new SimpleVector(tx,START_Y,-14f));
-            fence.setRenderProgram(program, Shader.METHOD_1);
+            fence.setRenderProgram(refProgram, Shader.METHOD_2);
+            fence.setTextureOpacity(1f);
+            fence.setShininess(0.5f);
             firstScene.addSceneObject(fence);
             tx+=10f;
         }
@@ -196,7 +221,10 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             road.setLength(10f);
             road.setBredth(10f);
             road.setLocation(new SimpleVector(tx, START_Y, 7f));
-            road.setRenderProgram(program, Shader.METHOD_1);
+            road.setRenderProgram(refProgram, Shader.METHOD_2);
+            road.setTextureOpacity(1f);
+            road.setShininess(1f);
+
             firstScene.addSceneObject(road);
             tx+=10f;
         }
@@ -249,8 +277,8 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         mainCharacter.setGravity(true);
         camera.follow(mainCharacter);
 
-        firstScene.setSceneLight(new SimpleVector(0.5f,0.5f,-1f));
-        skybox.setMainLight(new SimpleVector(0f,-1f,-0.5f));
+        firstScene.setSceneLight(new SimpleVector(0f,1f,1f));
+        skybox.setMainLight(new SimpleVector(0f,1f,1f));
         mainCharacter.setMainLight(new SimpleVector(0.5f,-1f,-0.5f));
         //house.setMainLight(lightDirRight);
 
@@ -267,7 +295,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         previousFrameTime = System.nanoTime();
         GLES20.glClearColor(((float)0/255), (float)0/255, (float)0/255,1f);
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
-        //GLES20.glClearDepthf(1.0f);
+        GLES20.glClearDepthf(1.0f);
 
         camera.updatePinchZoom();
         camera.updateView();

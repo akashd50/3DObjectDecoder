@@ -1,0 +1,9 @@
+<TextView
+    android:id="@+id/textbox_1"
+    android:layout_gravity="center"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:textSize="30sp"
+    android:fontFamily="serif-monospace"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+</TextView>
