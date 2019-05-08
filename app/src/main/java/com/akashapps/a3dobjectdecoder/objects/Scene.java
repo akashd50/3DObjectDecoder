@@ -4,6 +4,10 @@ import java.util.ArrayList;
 
 public class Scene {
     private ArrayList<SceneObject> objects;
+
+
+
+    private Camera camera;
     //private ArrayList<AnimatedObject> animatedObjects;
     public Scene(){
         objects = new ArrayList<>();
@@ -19,6 +23,7 @@ public class Scene {
     }
 
     public void onDrawFrame(float[] mMVPMatrix){
+        //set the view matrix for all object classes.
         for(SceneObject s: objects){
             s.onDrawFrame(mMVPMatrix);
         }
@@ -35,6 +40,7 @@ public class Scene {
             }
         }
     }
+
 
     public void rotateSceneX(float x){
         for(SceneObject s: objects){
@@ -54,5 +60,13 @@ public class Scene {
         /*for(AnimatedObject a: animatedObjects){
             a.setMainLight(light);
         }*/
+    }
+
+    public Camera getCamera() {
+        return camera;
+    }
+
+    public void setCamera(Camera camera) {
+        this.camera = camera;
     }
 }

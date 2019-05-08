@@ -4,6 +4,8 @@ import android.content.Context;
 import android.content.res.AssetManager;
 import android.graphics.Color;
 import android.opengl.GLES20;
+import static android.opengl.GLES20.*;
+
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
 import android.view.MotionEvent;
@@ -63,7 +65,6 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
     private BoxCollisionListener listener;
     private CollisionHandler characterGround;
     private SceneControlHandler sceneControlHandler;
-    //private Person mainCharacter;
     private boolean isReady;
     private AnimatedObject mainCharacter;
     private Animation sample, punch;
@@ -128,6 +129,8 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
 
     private void initializeGameObjects(){
         firstScene = new Scene();
+        firstScene.setCamera(camera);
+
         characterGround = new CollisionHandler();
         listener = new BoxCollisionListener(characterGround);
         int program = Shader.generateShadersAndProgram(Shader.O3DVERTEXSHADER, Shader.O3DFRAGMENTSHADER);
@@ -152,16 +155,27 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             firstScene.addSceneObject(block);
         }
 
-        Object3D house = new Object3D(R.raw.house_i,R.drawable.rickuii, context);
-        house.setLength(7f);
+        Object3D house = new Object3D(R.raw.house_base,R.drawable.rickuii, context);
+        Object3D houseGlass = new Object3D(R.raw.house_glass_mettalic,R.drawable.rickuii, context);
+        /*house.setLength(10f);
         house.setHeight(8f);
-        house.setBredth(8f);
+        house.setBredth(6f);
+        houseGlass.setLength(10f);
+        houseGlass.setHeight(7f);
+        houseGlass.setBredth(5f);
+*/
         house.setLocation(new SimpleVector(START_X+7f,START_Y,START_Z-4f-5f));
         house.setRenderProgram(refProgram, Shader.METHOD_2);
         house.setTextureOpacity(1f);
         house.setShininess(2f);
 
+        houseGlass.setLocation(new SimpleVector(START_X+7f,START_Y,START_Z-4f-5f));
+        houseGlass.setRenderProgram(refProgram, Shader.METHOD_2);
+        houseGlass.setTextureOpacity(1f);
+        houseGlass.setShininess(5f);
+
         firstScene.addSceneObject(house);
+        firstScene.addSceneObject(houseGlass);
 
         Object3D skybox= new Object3D(R.raw.skybox_i,R.drawable.sky_t, context);
         skybox.setLength(100f);
@@ -277,7 +291,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         mainCharacter.setGravity(true);
         camera.follow(mainCharacter);
 
-        firstScene.setSceneLight(new SimpleVector(0f,1f,1f));
+        firstScene.setSceneLight(new SimpleVector(1f,1f,1f));
         skybox.setMainLight(new SimpleVector(0f,1f,1f));
         mainCharacter.setMainLight(new SimpleVector(0.5f,-1f,-0.5f));
         //house.setMainLight(lightDirRight);
@@ -299,8 +313,12 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
 
         camera.updatePinchZoom();
         camera.updateView();
+        Object3D.setViewMatrix(camera.getViewMatrix());
 
-        float[] mainMatrix = camera.getViewMatrix();
+        float[] mainMatrix = camera.getMVPMatrix();
+
+        firstScene.setEyeLocation(new SimpleVector(-camera.getPosition().x, -camera.getPosition().y, -camera.getPosition().z));
+        firstScene.onDrawFrame(mainMatrix);
 
         if(characterGround.isCOLLISION_DETECTED()){
             mainCharacter.setVerticalVel(0f);
@@ -312,12 +330,11 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             mainCharacter.updateVerticalVel(mainCharacter.DEFAULT_GRAVITY_UPDATE);
         }
 
-
         if(dPad.isClicked()){
             if(characterGround.isSTILL_COLLIDING()) {
                 float rotY = mainCharacter.getMain().getRotation().y;
-                if(dPad.activeDpadX>0){
-                    if(rotY<90){
+                if (dPad.activeDpadX > 0) {
+                    if (rotY < 90) {
                         mainCharacter.getMain().rotateY(10f);
                     }
                     particleSystem.addParticles(40, Color.rgb(200,100,40),
@@ -327,8 +344,8 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
                             new SimpleVector(0f, 0.1f,0.3f),
                             new SimpleVector(-0.5f,0.2f,0.0f),
                             new SimpleVector(1f,1f,0f));
-                }else{
-                    if(rotY>-90){
+                } else {
+                    if (rotY > -90) {
                         mainCharacter.getMain().rotateY(-10f);
                     }
                     particleSystem.addParticles(40, Color.rgb(200,100,40),
@@ -342,30 +359,20 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
                 mainCharacter.setHorizontalVel(dPad.activeDpadX*0.25f);
                 mainCharacter.setAnimationTBPlayed(sample.getID());
 
-              /* particleSystem.addParticle(new SimpleVector(mainCharacter.getLocation().x,
-                        mainCharacter.getLocation().y-mainCharacter.getHeight()/2,mainCharacter.getLocation().z),
-                       Color.rgb(200,100,40),
-                        new SimpleVector(0f,1.0f,0.0f));*/
 
                 mainCharacter.animate(mainMatrix);
             }
-
-           /* particleSystem.addParticles(30, Color.rgb(200,100,40),
-                    new SimpleVector(2f,
-                            2f,0f),
-                    new SimpleVector(0f, 0f,0.3f),
-                    new SimpleVector(-0.5f,0f,0.0f),
-                    new SimpleVector(1f,1f,0f));*/
-
         }else if(punchButton.isClicked()){
             mainCharacter.setAnimationTBPlayed(punch.getID());
             mainCharacter.animate(mainMatrix);
         } else{
             mainCharacter.onDrawFrame(mainMatrix);
         }
-        firstScene.setEyeLocation(new SimpleVector(-camera.getPosition().x, -camera.getPosition().y, -camera.getPosition().z));
-        firstScene.onDrawFrame(mainMatrix);
+
+
+        glDepthMask(false);
         particleSystem.onDrawFrame(mainMatrix);
+        glDepthMask(true);
         customUIDrawing();
 
         currentFrameTime = System.nanoTime();
@@ -382,8 +389,6 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
 
         float[] color = {1.0f,1.0f,0f,1f};
         textDecoder.drawText("FPS: "+FPS,new SimpleVector(-1.0f,0.8f,2f),new SimpleVector(1.0f,1.0f,1f),uiMVPMatrix, color);
-        //dPad.onTouchMove(controller.getTouchX(), controller.getTouchY());
-        //dPad.onDrawFrame(uiMVPMatrix);
         sceneControlHandler.onDrawFrame(uiMVPMatrix);
     }
 
@@ -398,12 +403,10 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
 
     public void onTouchDown(MotionEvent event){
         sceneControlHandler.onTouchDown(event.getX(), event.getY());
-        //dPad.onTouchDown(event.getX(), event.getY());
     }
 
     public void onTouchUp(MotionEvent event){
         sceneControlHandler.onTouchUp(event.getX(), event.getY());
-        //dPad.onTouchUp(event.getX(), event.getY());
     }
 
     public void onTouchMove(MotionEvent event){

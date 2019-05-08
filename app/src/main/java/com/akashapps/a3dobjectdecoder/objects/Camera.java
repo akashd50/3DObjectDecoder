@@ -76,7 +76,7 @@ public class Camera {
         Matrix.multiplyMM(mMVPMatrix, 0, projectionMatrix, 0, viewMatrix, 0);
     }
 
-    public float[] getPrimViewMatrix(){return viewMatrix;}
+    public float[] getViewMatrix(){return viewMatrix;}
 
     public void doCircularShow(){
         SimpleVector controllerMod = new SimpleVector();
@@ -95,7 +95,7 @@ public class Camera {
         cameraRotation.z+=cr.z;
     }
 
-    public float[] getViewMatrix(){
+    public float[] getMVPMatrix(){
         return mMVPMatrix;
     }
 

@@ -11,6 +11,7 @@ import java.util.logging.Logger;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
+import com.akashapps.a3dobjectdecoder.objects.Camera;
 import com.akashapps.a3dobjectdecoder.objects.ObjDecoder;
 import com.akashapps.a3dobjectdecoder.objects.Object3D;
 import com.akashapps.a3dobjectdecoder.objects.ObjectDecoderWLS;
@@ -57,7 +58,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
 
     private boolean processesDone = false;
     public static boolean PAUSED = true;
-
+    private Camera camera;
     //private ObjDecoder cone;
     public GLRenderer(Context ctx, TouchController controller, int objID) {
         this.context = ctx;
@@ -78,6 +79,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     private void iniliazeUIElements(){
         textDecoder = new TextDecoder(context);
         scene = new Scene();
+        scene.setCamera(camera);
        // int program = Shader.generateShadersAndProgram(Shader.O3DVERTEXSHADER, Shader.O3DFRAGMENTSHADER);
         int refProgram = Shader.generateShadersAndProgram(Shader.REFLECTVERTEXSHADER, Shader.REFLECTFRAGMENTSHADER);
 
@@ -86,9 +88,9 @@ public class GLRenderer implements GLSurfaceView.Renderer {
                 cube = new Object3D(R.raw.rick_ship_base, R.drawable.rickuii, context);
                 cube2 = new Object3D(R.raw.rick_ship_glass, R.drawable.rickuii, context);
                 cube3 = new Object3D(R.raw.rick_ship_cylinders, R.drawable.rickuii, context);
-                cube.setShininess(1f);
-                cube2.setShininess(2.0f);
-                cube3.setShininess(1.0f);
+                cube.setShininess(2f);
+                cube2.setShininess(1f);
+                cube3.setShininess(2f);
                 scene.addSceneObject(cube);
                 scene.addSceneObject(cube2);
                 scene.addSceneObject(cube3);
@@ -98,8 +100,8 @@ public class GLRenderer implements GLSurfaceView.Renderer {
                 cube2 = new Object3D(R.raw.gunmettalic_i, R.drawable.rickuii, context);
                 cube3 = new Object3D(R.raw.gunmag_i, R.drawable.rickuii, context);
                 cube.setShininess(1f);
-                cube2.setShininess(2.0f);
-                cube3.setShininess(2.0f);
+                cube2.setShininess(6.0f);
+                cube3.setShininess(4.0f);
                 scene.addSceneObject(cube);
                 scene.addSceneObject(cube2);
                 scene.addSceneObject(cube3);
@@ -131,54 +133,28 @@ public class GLRenderer implements GLSurfaceView.Renderer {
 
     public void onDrawFrame(GL10 unused) {
         previousFrameTime = System.nanoTime();
-      //  GLES20.glEnable(GLES20.GL_DEPTH_TEST);
         GLES20.glClearColor(0.1f,0.1f,0.1f,1f);
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
-      // GLES20.glClear(GLES20.GL_DEPTH_BITS);
-
-       // GLES20.glDepthMask(false);
-      // GLES20.glDepthFunc(GLES20.GL_LESS);
         GLES20.glClearDepthf(1.0f);
 
-        defaultCamZ= defaultCamZ -controller.PINCH;
-
-        Matrix.setLookAtM(mViewMatrix, 0, 0, 0, defaultCamZ,
-                0.0f, 0.0f, 0.0f,
-                0f, 1.0f, 0.0f);
-        Matrix.multiplyMM(mMVPMatrix, 0, mProjectionMatrix, 0, mViewMatrix, 0);
+        camera.updatePinchZoom();
+        camera.updateView();
 
         if(controller.rotationalTurnY!=0){
-            //cube.rotateX((float)(controller.rotationalTurnY*(180/Math.PI)))
-            //cube.rotateX((float)(controller.rotationalTurnY*(180/Math.PI)));
-            //cube2.rotateX((float)(controller.rotationalTurnY*(180/Math.PI)));
-            //cube3.rotateX((float)(controller.rotationalTurnY*(180/Math.PI)));
             scene.rotateSceneX((float)(controller.rotationalTurnY*(180/Math.PI)));
             controller.rotationalTurnY = 0;
         }
         if(controller.rotationTurnX!=0){
-            //cube.rotateY((float)(controller.rotationTurnX*(180/Math.PI)));
-            //cube.rotateY((float)(controller.rotationTurnX*(180/Math.PI)));
-            //cube2.rotateY((float)(controller.rotationTurnX*(180/Math.PI)));
-            //cube3.rotateY((float)(controller.rotationTurnX*(180/Math.PI)));
+
             scene.rotateSceneY((float)(controller.rotationTurnX*(180/Math.PI)));
 
             controller.rotationTurnX = 0;
         }
 
-        //cube.rotateY(0.09f);
-        //cube.onDrawFrame(mMVPMatrix);
-        /*cube.setEyeLocation(new SimpleVector(0f,0f,-defaultCamZ));
-        cube2.setEyeLocation(new SimpleVector(0f,0f,-defaultCamZ));
-        cube3.setEyeLocation(new SimpleVector(0f,0f,-defaultCamZ));
-*/
+        Object3D.setViewMatrix(camera.getViewMatrix());
         scene.setEyeLocation(new SimpleVector(0f,0f,-defaultCamZ));
-        /*cube.onDrawFrame(mMVPMatrix);
-        cube2.onDrawFrame(mMVPMatrix);
-        cube3.onDrawFrame(mMVPMatrix);*/
-        scene.onDrawFrame(mMVPMatrix);
-       // c.draw(mMVPMatrix);
+        scene.onDrawFrame(camera.getMVPMatrix());
 
-        //drawJPCTStuff();
         customUIDrawing();
 
         currentFrameTime = System.nanoTime();
@@ -200,6 +176,8 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     public void onSurfaceChanged(GL10 unused, int width, int height) {
         GLES20.glViewport(0, 0, width, height);
         float ratio = (float) width / height;
+        camera = new Camera();
+        camera.setTouchController(controller);
 
         Matrix.perspectiveM(mProjectionMatrix, 0, 45f, ratio, 1, 100);
         //Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 3, 10);
@@ -211,6 +189,13 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         GLES20.glEnable(GLES20.GL_CULL_FACE);
         //GLES20.glCullFace(GLES20.GL_FRONT_FACE);
         iniliazeUIElements();
+
+        camera.setMatrices(new float[16],mProjectionMatrix,new float[16]);
+        camera.setPosition(new SimpleVector(0f,0f,5f));
+        camera.lookAt(new SimpleVector(0f,0f,0f));
+        camera.setFollowSpeed(new SimpleVector(0.04f,0f,0f));
+        camera.setFollowDelay(new SimpleVector(1.5f,0f,0f));
+
         PAUSED = false;
 
     }

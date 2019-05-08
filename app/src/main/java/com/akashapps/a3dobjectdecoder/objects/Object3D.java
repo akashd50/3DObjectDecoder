@@ -24,35 +24,22 @@ import java.util.ArrayList;
 
 public class Object3D extends SceneObject {
     private int id;
-    private ArrayList<SimpleVector> vertices;
-    private ArrayList<SimpleVector> normals;
-    private ArrayList<SimpleVector> uvs;
+    private static float[] VIEW_MATRIX;
+    private ArrayList<SimpleVector> vertices, normals, uvs;
     private ArrayList<Config> drawConfig;
-    private FloatBuffer vertexBuffer, colorBuffer, normalBuffer;
-    private float[] verticesA, normalsA, uvsA;
-    private int mProgram;
-    private int mPositionHandle;
+    private FloatBuffer mTextureBuffer, vertexBuffer, normalBuffer, normalMapBuffer;
+    private float[] verticesA, normalsA, uvsA, transformationMatrix;
+    private int mPositionHandle, normalHandle, mProgram, vertexCount;
     private static final int COORDS_PER_VERTEX = 3;
     private static final int BYTES_PER_FLOAT = 4;
-    private int vertexCount;
     private static int vertexStride = (COORDS_PER_VERTEX )* 4;
     private int mMVPMatrixHandle, aTextureHandle, textureUniform;
-    private FloatBuffer mTextureBuffer;
+
     private int[] textures = new int[1];
-    private float[] transformationMatrix;
+    private int[] normalMap;
     private int mTextureId;
-    //public float rotateX,rotateY,rotateZ, defRotX, defRotY, defRotZ, lAngleX, lAngleY, lAngleZ;
-   // public float transformY,transformX,transformZ, scaleX,scaleY, scaleZ;
-    private float defTransX;
-    private float defTransY;
-    private float defTransZ;
 
-
-
-    private float shininess;
-    private float ambientLightVal;
-    private float textureOpacity;
-    private float originalLightAngleY;
+    private float shininess, ambientLightVal, textureOpacity, originalLightAngleY;
 
     private SimpleVector NegX, PosX, NegY, PosY, NegZ, PosZ, mainlight, lightColor, location, rotation, scale, eyeLocation;
     private static final String LIGHT_COLOR = "v_lightCol";
@@ -64,36 +51,6 @@ public class Object3D extends SceneObject {
     private int DRAW_METHOD;
     private Collider collider;
 
-    /*private static String TPVERTEXSHADER =
-                    "uniform mat4 u_Matrix;" +
-                    "attribute vec4 a_Position;" +
-                    "varying vec3 v_Normal;"+
-                    "attribute vec2 a_TextureCoordinates;" +
-                    "varying vec2 v_TextureCoordinates;" +
-                    "attribute vec3 a_Normal;"+
-                    "void main()" +
-                    "{" +
-                        "v_Normal = normalize((u_Matrix * vec4(a_Normal,0.0)).xyz);"+
-                        "v_TextureCoordinates = a_TextureCoordinates;" +
-                        "gl_Position = u_Matrix * a_Position;" +
-                    "}";
-
-    private static String TPFRAGMENTSHADER =
-                    "precision mediump float;" +
-                    "varying vec3 v_Normal;"+
-                    "uniform vec3 v_lightCol;"+
-                    "uniform float v_opacity;"+
-                    "uniform float v_ambient;"+
-                    "uniform sampler2D u_TextureUnit;" +
-                    "varying vec2 v_TextureCoordinates;" +
-                    "uniform vec3 v_VectorToLight;"+
-                    "void main()" +
-                    "{" +
-                        "float diffuse = max(dot(v_Normal, v_VectorToLight), v_ambient);" +
-                        "vec3 f_color = v_lightCol * diffuse;"+
-                        "gl_FragColor = vec4(f_color,1.0)*texture2D(u_TextureUnit, v_TextureCoordinates);" +
-                    "}";
-*/
     private Context context;
     public Object3D(int fileId, int texId, Context context){
         //lAngleX = 0f;lAngleY=0f;lAngleZ=1f;
@@ -158,6 +115,165 @@ public class Object3D extends SceneObject {
         loadTexture(context,texId);
         DRAW_METHOD = 0;
     }
+
+    public void onDrawFrame(float[] mMVPMatrix){
+        float[] scratch = new float[16];
+
+        Matrix.setIdentityM(transformationMatrix,0);
+        if(super.followingObject!=null){
+            Matrix.translateM(transformationMatrix, 0, followingObject.getLocation().x, location.y, location.z);
+        }else {
+            Matrix.translateM(transformationMatrix, 0, location.x, location.y, location.z);
+        }
+
+        Matrix.rotateM(transformationMatrix, 0, rotation.x, 1, 0, 0);
+        Matrix.rotateM(transformationMatrix, 0, rotation.y, 0, 1, 0);
+        Matrix.rotateM(transformationMatrix, 0, rotation.z, 0, 0, 1);
+        Matrix.scaleM(transformationMatrix,0,scale.x, scale.y, scale.z);
+
+        Matrix.multiplyMM(scratch,0,mMVPMatrix,0, transformationMatrix,0);
+
+      /*  float[] modelView = new float[16];
+        float[] tempMat = new float[16];
+        float[] invModelView = new float[16];
+
+        Matrix.setIdentityM(modelView,0);
+        Matrix.multiplyMM(modelView,0,VIEW_MATRIX,0,transformationMatrix,0);
+        Matrix.invertM(tempMat,0,modelView, 0);
+        Matrix.transposeM(invModelView,0,tempMat,0);
+*/
+        //drawing------------------------------------------------
+        setProgramAndUMat(scratch);
+        if(DRAW_METHOD==Shader.METHOD_2){
+            setTransformationMatrix(transformationMatrix);
+
+          /*  final float[] vectorToLightInEyeSpace = new float[4];
+            float[] vectorToLight = {mainlight.x,mainlight.y,mainlight.z,0.0f};
+            Matrix.multiplyMV(vectorToLightInEyeSpace, 0, VIEW_MATRIX, 0, vectorToLight, 0);
+            setULightVector(vectorToLightInEyeSpace);
+*/
+          setULightVector();
+        }else if(DRAW_METHOD==Shader.METHOD_3){
+            //setViewAndInvrViewMatrices(modelView, invModelView);
+        }else if(DRAW_METHOD==Shader.METHOD_1){
+            setULightVector();
+        }
+
+        setAmbientLightVector();
+        setOpacityVector();
+        if(DRAW_METHOD==Shader.METHOD_2) {
+            setShinninessValue();
+            setEyeVector();
+        }
+        setLightColorVector();
+        setUTextureUnit();
+        setPositionVectors();
+        setNormalVectors();
+        setTextureVectors();
+
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, vertexCount);
+
+        GLES20.glDisableVertexAttribArray(mPositionHandle);
+        GLES20.glDisableVertexAttribArray(normalHandle);
+        GLES20.glDisableVertexAttribArray(aTextureHandle);
+
+       /* if(DRAW_METHOD == Shader.METHOD_1) {
+                   drawHelper(scratch);
+        }else if(DRAW_METHOD == Shader.METHOD_2){
+            drawHelper2(scratch);
+        }else if(DRAW_METHOD==Shader.METHOD_3){
+
+        }*/
+    }
+    private void setProgramAndUMat(float[] mMVPMatrix){
+        GLES20.glUseProgram(mProgram);
+        mMVPMatrixHandle = GLES20.glGetUniformLocation(mProgram, "u_Matrix");
+        GLES20.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, mMVPMatrix, 0);
+    }
+    private void setTransformationMatrix(float[] matrix){
+        int trMatrix = GLES20.glGetUniformLocation(mProgram, "transformation_matrix");
+        GLES20.glUniformMatrix4fv(trMatrix , 1, false, matrix, 0);
+    }
+    private void setViewAndInvrViewMatrices(float[] view, float[] invView){
+        int trMatrix = GLES20.glGetUniformLocation(mProgram, "view_transformation_matrix");
+        GLES20.glUniformMatrix4fv(trMatrix , 1, false, view, 0);
+
+        trMatrix = GLES20.glGetUniformLocation(mProgram, "inv_view_transformation");
+        GLES20.glUniformMatrix4fv(trMatrix , 1, false, invView, 0);
+    }
+    private void setULightVector(){
+        int vectorToLight = GLES20.glGetUniformLocation(mProgram, LiGHT_LOCATION);
+        GLES20.glUniform3f(vectorToLight, mainlight.x, mainlight.y, mainlight.z);
+    }
+    private void setULightVector(float[] light){
+        int vectorToLight = GLES20.glGetUniformLocation(mProgram, LiGHT_LOCATION);
+        GLES20.glUniform3f(vectorToLight, light[0], light[1], light[2]);
+    }
+    private void setAmbientLightVector(){
+        int ambient = GLES20.glGetUniformLocation(mProgram, AMBIENT_LIGHT);
+        GLES20.glUniform1f(ambient, ambientLightVal);
+    }
+    private void setOpacityVector(){
+        int opacity = GLES20.glGetUniformLocation(mProgram, OPACITY);
+        GLES20.glUniform1f(opacity, textureOpacity);
+    }
+    private void setShinninessValue(){
+        int shin = GLES20.glGetUniformLocation(mProgram, SHININESS);
+        GLES20.glUniform1f(shin, shininess);
+    }
+    private void setEyeVector(){
+        int eye = GLES20.glGetUniformLocation(mProgram, "inverseEye");
+        GLES20.glUniform3f(eye, eyeLocation.x,eyeLocation.y,eyeLocation.z);
+    }
+    private void setLightColorVector(){
+        int lightCol = GLES20.glGetUniformLocation(mProgram, LIGHT_COLOR);
+        GLES20.glUniform3f(lightCol, lightColor.x, lightColor.y, lightColor.z);
+    }
+    private void setUTextureUnit(){
+        textureUniform = GLES20.glGetUniformLocation(mProgram,"u_TextureUnit");
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures[0]);
+        GLES20.glUniform1i(textureUniform, 0);
+    }
+    private void setPositionVectors(){
+        mPositionHandle = GLES20.glGetAttribLocation(mProgram, "a_Position");
+        GLES20.glVertexAttribPointer(mPositionHandle, COORDS_PER_VERTEX,
+                GLES20.GL_FLOAT, false,
+                vertexStride, vertexBuffer);
+        GLES20.glEnableVertexAttribArray(mPositionHandle);
+    }
+
+    private void setNormalVectors(){
+        normalHandle = GLES20.glGetAttribLocation(mProgram, "a_Normal");
+        GLES20.glVertexAttribPointer(normalHandle, 3,
+                GLES20.GL_FLOAT, true, 3*4,normalBuffer);
+        GLES20.glEnableVertexAttribArray(normalHandle);
+    }
+
+    private void setTextureVectors(){
+        mTextureBuffer.position(0);
+        aTextureHandle = GLES20.glGetAttribLocation(mProgram,"a_TextureCoordinates");
+        GLES20.glVertexAttribPointer(aTextureHandle,2,GLES20.GL_FLOAT,false,8,mTextureBuffer);
+        GLES20.glEnableVertexAttribArray(aTextureHandle);
+    }
+
+    private void setUNormalMapUnit(){
+        int normapMap = GLES20.glGetUniformLocation(mProgram,"n_TextureUnit");
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE1);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, normalMap[0]);
+        GLES20.glUniform1i(normapMap, 0);
+    }
+
+    private void setNormalMapVectors(){
+        mTextureBuffer.position(0);
+        int normalMapHandle = GLES20.glGetAttribLocation(mProgram,"a_NormalCoordinates");
+        GLES20.glVertexAttribPointer(normalMapHandle,2,GLES20.GL_FLOAT,false,8,mTextureBuffer);
+        GLES20.glEnableVertexAttribArray(normalMapHandle);
+    }
+
+    public static void setViewMatrix(float[] matrix){
+        VIEW_MATRIX = matrix;
+    }
     public void setRenderProgram(int p, int draw_method){
         this.mProgram = p;
         DRAW_METHOD = draw_method;
@@ -197,266 +313,6 @@ public class Object3D extends SceneObject {
         normalBuffer = fb;
     }
 
-    private void reorganizeData(){
-        int arrayCounter = 0;
-        int uvCounter = 0;
-        int normalCounter = 0;
-        for(int i=0;i<drawConfig.size();i++){
-            Config c = drawConfig.get(i);
-            SimpleVector v1 = vertices.get(c.v1-1);
-            SimpleVector normal = normals.get(c.n1-1);
-
-            verticesA[arrayCounter++] = v1.x;
-            verticesA[arrayCounter++] = v1.y;
-            verticesA[arrayCounter++] = v1.z;
-            normalsA[normalCounter++] = normal.x;
-            normalsA[normalCounter++] = normal.y;
-            normalsA[normalCounter++] = normal.z;
-
-            uvsA[uvCounter++] = uvs.get(c.t1-1).x;
-            uvsA[uvCounter++] = uvs.get(c.t1-1).y;
-
-          //  System.out.println(v1 + " normal: "+normal + " uv: "+uvs.get(c.t1-1));
-
-            SimpleVector v2 = vertices.get(c.v2-1);
-            verticesA[arrayCounter++] = v2.x;
-            verticesA[arrayCounter++] = v2.y;
-            verticesA[arrayCounter++] = v2.z;
-            uvsA[uvCounter++] = uvs.get(c.t2-1).x;
-            uvsA[uvCounter++] = uvs.get(c.t2-1).y;
-
-            normal = normals.get(c.n2-1);
-            normalsA[normalCounter++] = normal.x;
-            normalsA[normalCounter++] = normal.y;
-            normalsA[normalCounter++] = normal.z;
-
-          ///  System.out.println(v2 + " normal: "+normal + " uv: "+uvs.get(c.t2-1));
-
-            SimpleVector v3 = vertices.get(c.v3-1);
-            verticesA[arrayCounter++] = v3.x;
-            verticesA[arrayCounter++] = v3.y;
-            verticesA[arrayCounter++] = v3.z;
-            uvsA[uvCounter++] = uvs.get(c.t3-1).x;
-            uvsA[uvCounter++] = uvs.get(c.t3-1).y;
-
-            normal = normals.get(c.n3-1);
-            normalsA[normalCounter++] = normal.x;
-            normalsA[normalCounter++] = normal.y;
-            normalsA[normalCounter++] = normal.z;
-
-          //  System.out.println(v3 + " normal: "+normal + " uv: "+uvs.get(c.t3-1));
-        }
-
-    }
-
-
-    private void readFile(BufferedReader reader){
-        String temp = "";
-        try {
-            while ((temp = reader.readLine()) != null) {
-                String[] verts = temp.split(" ");
-                if (verts[0].compareTo("v") == 0) {
-
-                    vertices.add(new SimpleVector(Float.parseFloat(verts[1]),
-                            Float.parseFloat(verts[2]),
-                            Float.parseFloat(verts[3])));
-
-                    float x = Float.parseFloat(verts[1]);
-                    float y = Float.parseFloat(verts[2]);
-                    float z = Float.parseFloat(verts[3]);
-                    if(x < NegX.x){
-                        NegX.x = x;
-                    }
-                    if(x > PosX.x){
-                        PosX.x = x;
-                    }
-
-                    if(y < NegY.y){
-                        NegY.y = y;
-                    }
-                    if(y > PosY.y){
-                        PosY.y = y;
-                    }
-
-                    if(z < NegZ.z){
-                        NegZ.z = z;
-                    }
-                    if(z > PosZ.z){
-                        PosZ.z = z;
-                    }
-
-                } else if (verts[0].compareTo("vn") == 0) {
-                    normals.add(new SimpleVector(Float.parseFloat(verts[1]),
-                            Float.parseFloat(verts[2]),
-                            Float.parseFloat(verts[3])));
-
-                } else if (verts[0].compareTo("f")==0){
-
-                    String[] v1 = verts[1].split("/");
-                    Config c = new Config();
-
-                    c.v1 = Integer.parseInt(v1[0]); c.t1 = Integer.parseInt(v1[1]); c.n1 = Integer.parseInt(v1[2]);
-                    //drawConfig.add(c);
-                    v1 = verts[2].split("/");
-                    c.v2 = Integer.parseInt(v1[0]); c.t2 = Integer.parseInt(v1[1]); c.n2 = Integer.parseInt(v1[2]);
-                    // drawConfig.add(c);
-                    v1 = verts[3].split("/");
-                    c.v3 = Integer.parseInt(v1[0]); c.t3 = Integer.parseInt(v1[1]); c.n3 = Integer.parseInt(v1[2]);
-
-                    drawConfig.add(c);
-
-                }else if(verts[0].compareTo("vt")==0){
-                    uvs.add(new SimpleVector(Float.parseFloat(verts[1]),
-                            1f - Float.parseFloat(verts[2]), 0f));
-                }else{
-                    continue;
-                }
-            }
-        }catch (IOException e){
-            Toast.makeText(context,"Error",Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    public void drawHelper2(float[] mMVPMatrix){
-        GLES20.glUseProgram(mProgram);
-        mMVPMatrixHandle = GLES20.glGetUniformLocation(mProgram, "u_Matrix");
-        GLES20.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, mMVPMatrix, 0);
-
-        int trMatrix = GLES20.glGetUniformLocation(mProgram, "transformation_matrix");
-        GLES20.glUniformMatrix4fv(trMatrix , 1, false, transformationMatrix, 0);
-
-        int vectorToLight = GLES20.glGetUniformLocation(mProgram, LiGHT_LOCATION);
-        GLES20.glUniform3f(vectorToLight, mainlight.x, mainlight.y, mainlight.z);
-
-        int ambient = GLES20.glGetUniformLocation(mProgram, AMBIENT_LIGHT);
-        GLES20.glUniform1f(ambient, ambientLightVal);
-
-        int opacity = GLES20.glGetUniformLocation(mProgram, OPACITY);
-        GLES20.glUniform1f(opacity, textureOpacity);
-
-        int shin = GLES20.glGetUniformLocation(mProgram, SHININESS);
-        GLES20.glUniform1f(shin, shininess);
-
-       // eyeLocation.x = 0f;eyeLocation.y=0f;eyeLocation.z=-1f;
-
-        int eye = GLES20.glGetUniformLocation(mProgram, "inverseEye");
-        GLES20.glUniform3f(eye, eyeLocation.x,eyeLocation.y,eyeLocation.z);
-        //TO DO: convert the camera coordinates to the scene space by mul with the view matrix.
-        //
-
-        int lightCol = GLES20.glGetUniformLocation(mProgram, LIGHT_COLOR);
-        GLES20.glUniform3f(lightCol, lightColor.x, lightColor.y, lightColor.z);
-
-        textureUniform = GLES20.glGetUniformLocation(mProgram,"u_TextureUnit");
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures[0]);
-        GLES20.glUniform1i(textureUniform, 0);
-
-        mPositionHandle = GLES20.glGetAttribLocation(mProgram, "a_Position");
-        GLES20.glVertexAttribPointer(mPositionHandle, COORDS_PER_VERTEX,
-                GLES20.GL_FLOAT, false,
-                vertexStride, vertexBuffer);
-        GLES20.glEnableVertexAttribArray(mPositionHandle);
-
-        int normalHandle = GLES20.glGetAttribLocation(mProgram, "a_Normal");
-        GLES20.glVertexAttribPointer(normalHandle, 3,
-                GLES20.GL_FLOAT, true, 3*4,normalBuffer);
-        GLES20.glEnableVertexAttribArray(normalHandle);
-
-        mTextureBuffer.position(0);
-        aTextureHandle = GLES20.glGetAttribLocation(mProgram,"a_TextureCoordinates");
-        GLES20.glVertexAttribPointer(aTextureHandle,2,GLES20.GL_FLOAT,false,8,mTextureBuffer);
-        GLES20.glEnableVertexAttribArray(aTextureHandle);
-
-        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, vertexCount);
-        GLES20.glDisableVertexAttribArray(mPositionHandle);
-        GLES20.glDisableVertexAttribArray(normalHandle);
-        GLES20.glDisableVertexAttribArray(aTextureHandle);
-
-    }
-    public void drawHelper(float[] mMVPMatrix){
-        GLES20.glUseProgram(mProgram);
-        // get handle to shape's transformation matrix
-        mMVPMatrixHandle = GLES20.glGetUniformLocation(mProgram, "u_Matrix");
-        // Pass the projection and view transformation to the shader
-        GLES20.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, mMVPMatrix, 0);
-
-
-        int vectorToLight = GLES20.glGetUniformLocation(mProgram, LiGHT_LOCATION);
-        GLES20.glUniform3f(vectorToLight, mainlight.x, mainlight.y, mainlight.z);
-
-        int ambient = GLES20.glGetUniformLocation(mProgram, AMBIENT_LIGHT);
-        GLES20.glUniform1f(ambient, ambientLightVal);
-
-        int opacity = GLES20.glGetUniformLocation(mProgram, OPACITY);
-        GLES20.glUniform1f(opacity, textureOpacity);
-
-        int lightCol = GLES20.glGetUniformLocation(mProgram, LIGHT_COLOR);
-        GLES20.glUniform3f(lightCol, lightColor.x, lightColor.y, lightColor.z);
-
-        //------------------------------------
-
-        //==========================================================================================
-        // Enable a handle to the triangle vertices
-        // get handle to vertex shader's vPosition member
-        textureUniform = GLES20.glGetUniformLocation(mProgram,"u_TextureUnit");
-        // Set the active texture unit to texture unit 0.
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-        // Bind the texture to this unit.
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures[0]);
-        // Tell the texture uniform sampler to use this texture in the shader by
-        // telling it to read from texture unit 0.
-        GLES20.glUniform1i(textureUniform, 0);
-        // Prepare the triangle coordinate datav
-        //vertexBuffer.position(0);
-        mPositionHandle = GLES20.glGetAttribLocation(mProgram, "a_Position");
-        GLES20.glVertexAttribPointer(mPositionHandle, COORDS_PER_VERTEX,
-                GLES20.GL_FLOAT, false,
-                vertexStride, vertexBuffer);
-        GLES20.glEnableVertexAttribArray(mPositionHandle);
-
-        int normalHandle = GLES20.glGetAttribLocation(mProgram, "a_Normal");
-        GLES20.glVertexAttribPointer(normalHandle, 3,
-                GLES20.GL_FLOAT, true, 3*4,normalBuffer);
-        GLES20.glEnableVertexAttribArray(normalHandle);
-
-
-        mTextureBuffer.position(0);
-        aTextureHandle = GLES20.glGetAttribLocation(mProgram,"a_TextureCoordinates");
-        GLES20.glVertexAttribPointer(aTextureHandle,2,GLES20.GL_FLOAT,false,8,mTextureBuffer);
-        GLES20.glEnableVertexAttribArray(aTextureHandle);
-        //GLES20.glEnable( GLES20.GL_BLEND);
-        //GLES20.glBlendFunc( GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA );
-        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, vertexCount);
-        GLES20.glDisableVertexAttribArray(mPositionHandle);
-        GLES20.glDisableVertexAttribArray(normalHandle);
-        GLES20.glDisableVertexAttribArray(aTextureHandle);
-
-    }
-    public void onDrawFrame(float[] mMVPMatrix){
-        float[] scratch = new float[16];
-        //float[] temp = new float[16];
-
-        Matrix.setIdentityM(transformationMatrix,0);
-        if(super.followingObject!=null){
-            Matrix.translateM(transformationMatrix, 0, followingObject.getLocation().x, location.y, location.z);
-        }else {
-            Matrix.translateM(transformationMatrix, 0, location.x, location.y, location.z);
-        }
-        Matrix.rotateM(transformationMatrix, 0, rotation.x, 1, 0, 0);
-        Matrix.rotateM(transformationMatrix, 0, rotation.y, 0, 1, 0);
-        Matrix.rotateM(transformationMatrix, 0, rotation.z, 0, 0, 1);
-        Matrix.scaleM(transformationMatrix,0,scale.x, scale.y, scale.z);
-
-        Matrix.multiplyMM(scratch,0,mMVPMatrix,0, transformationMatrix,0);
-
-        if(DRAW_METHOD == Shader.METHOD_1) {
-            drawHelper(scratch);
-        }else if(DRAW_METHOD == Shader.METHOD_2){
-            drawHelper2(scratch);
-        }
-    }
-
     public void rotateX(float angle){
         if(rotation.x+angle<=360) {
             rotation.x += angle;
@@ -469,7 +325,6 @@ public class Object3D extends SceneObject {
     public float getShininess() {
         return shininess;
     }
-
     public void setShininess(float shininess) {
         this.shininess = shininess;
     }
@@ -477,8 +332,6 @@ public class Object3D extends SceneObject {
         mainlight.x = l.x;
         mainlight.y = l.y;
         mainlight.z = l.z;
-
-        originalLightAngleY = (float)Math.atan(mainlight.x/mainlight.z);
     }
 
     public void setCollider(Collider c){
@@ -532,11 +385,6 @@ public class Object3D extends SceneObject {
         }
     }
 
-    public void resetRotation(){
-        rotation.z = 0f;
-        rotation.y =0f;
-        rotation.x =0f;
-    }
     public void scale(float x, float y, float z){
         scale.x=x;
         scale.y=y;
@@ -548,13 +396,6 @@ public class Object3D extends SceneObject {
         location.y = s.y;
         location.z = s.z;
 
-        /*PosX.x += s.x;
-        NegX.x += s.x;
-        PosY.y += s.y;
-        NegY.y += s.y;
-        PosZ.z += s.z;
-        NegZ.z += s.z;
-        */
         if(collider!=null) {
             collider.setLocation(location);
         }
@@ -569,83 +410,11 @@ public class Object3D extends SceneObject {
         location.y += s.y;
         location.z += s.z;
 
-       /* PosX.x += s.x;
-        NegX.x += s.x;
-        PosY.y += s.y;
-        NegY.y += s.y;
-        PosZ.z += s.z;
-        NegZ.z += s.z;
-        */
         if(collider!=null) {
             collider.setLocation(location);
         }
     }
-    //public ArrayList<Vector3> getVertices(){return this.vertices;}
-    private int loadTexture(Context context, int resID){
-        textures = new int[1];
-        GLES20.glGenTextures(1, textures, 0);
-        final BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inScaled = false;
-        Bitmap bitmap = BitmapFactory.decodeResource(
-                context.getResources(), resID, options);
 
-
-        /*= BitmapFactory.decodeResource(
-                context.getResources(), resID, options);*/
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures[0]);
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR_MIPMAP_LINEAR);
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
-        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
-        bitmap.recycle();
-        GLES20.glGenerateMipmap(GLES20.GL_TEXTURE_2D);
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
-
-        return textures[0];
-    }
-    /*private void generateProgram() {
-        //  if(mProgram==0) {
-        int vertexShad = GLRenderer.loadShader(GLES20.GL_VERTEX_SHADER,
-                TPVERTEXSHADER);
-        int fragmentShad = GLRenderer.loadShader(GLES20.GL_FRAGMENT_SHADER,
-                TPFRAGMENTSHADER);
-
-        // create empty OpenGL ES Program
-        mProgram = GLES20.glCreateProgram();
-
-        // add the vertex shader to program
-        GLES20.glAttachShader(mProgram, vertexShad);
-
-        // add the fragment shader to program
-        GLES20.glAttachShader(mProgram, fragmentShad);
-
-        // creates OpenGL ES program executables
-        GLES20.glLinkProgram(mProgram);
-        //  }
-    }
-*/
-   /* public SimpleVector getFront() {
-        return PosZ;
-    }
-
-    public SimpleVector getUp() {
-        return PosY;
-    }
-
-    public SimpleVector getRight() {
-        return PosX;
-    }
-
-    public SimpleVector getDown() {
-        return NegY;
-    }
-
-    public SimpleVector getLeft() {
-        return NegX;
-    }
-
-    public SimpleVector getBack() {
-        return NegZ;
-    }*/
 
     public float getLength(){
         return PosX.x - NegX.x;
@@ -692,6 +461,7 @@ public class Object3D extends SceneObject {
     public void setRotation(SimpleVector r){
         rotation.x = r.x;rotation.y = r.y;rotation.z =  r.z;
     }
+
     public int getDrawMethod(){
         return this.DRAW_METHOD;
     }
@@ -708,5 +478,140 @@ public class Object3D extends SceneObject {
 
             }
         }
+    }
+
+
+
+
+
+
+
+    //-----------------------------------------------------------------------------------------------
+    private int loadTexture(Context context, int resID){
+        textures = new int[1];
+        GLES20.glGenTextures(1, textures, 0);
+        final BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inScaled = false;
+        Bitmap bitmap = BitmapFactory.decodeResource(
+                context.getResources(), resID, options);
+
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures[0]);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR_MIPMAP_LINEAR);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
+        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
+        bitmap.recycle();
+        GLES20.glGenerateMipmap(GLES20.GL_TEXTURE_2D);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
+
+        return textures[0];
+    }
+
+    public void loadNormalMap(int resID){
+        normalMap = new int[1];
+        GLES20.glGenTextures(1, normalMap, 0);
+        final BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inScaled = false;
+        Bitmap bitmap = BitmapFactory.decodeResource(
+                context.getResources(), resID, options);
+
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, normalMap[0]);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR_MIPMAP_LINEAR);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
+        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
+        bitmap.recycle();
+        GLES20.glGenerateMipmap(GLES20.GL_TEXTURE_2D);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
+    }
+
+    private void reorganizeData(){
+        int arrayCounter = 0;
+        int uvCounter = 0;
+        int normalCounter = 0;
+        for(int i=0;i<drawConfig.size();i++){
+            Config c = drawConfig.get(i);
+            SimpleVector v1 = vertices.get(c.v1-1);
+            SimpleVector normal = normals.get(c.n1-1);
+
+            verticesA[arrayCounter++] = v1.x;
+            verticesA[arrayCounter++] = v1.y;
+            verticesA[arrayCounter++] = v1.z;
+            normalsA[normalCounter++] = normal.x;
+            normalsA[normalCounter++] = normal.y;
+            normalsA[normalCounter++] = normal.z;
+
+            uvsA[uvCounter++] = uvs.get(c.t1-1).x;
+            uvsA[uvCounter++] = uvs.get(c.t1-1).y;
+
+            SimpleVector v2 = vertices.get(c.v2-1);
+            verticesA[arrayCounter++] = v2.x;
+            verticesA[arrayCounter++] = v2.y;
+            verticesA[arrayCounter++] = v2.z;
+            uvsA[uvCounter++] = uvs.get(c.t2-1).x;
+            uvsA[uvCounter++] = uvs.get(c.t2-1).y;
+
+            normal = normals.get(c.n2-1);
+            normalsA[normalCounter++] = normal.x;
+            normalsA[normalCounter++] = normal.y;
+            normalsA[normalCounter++] = normal.z;
+
+            SimpleVector v3 = vertices.get(c.v3-1);
+            verticesA[arrayCounter++] = v3.x;
+            verticesA[arrayCounter++] = v3.y;
+            verticesA[arrayCounter++] = v3.z;
+            uvsA[uvCounter++] = uvs.get(c.t3-1).x;
+            uvsA[uvCounter++] = uvs.get(c.t3-1).y;
+
+            normal = normals.get(c.n3-1);
+            normalsA[normalCounter++] = normal.x;
+            normalsA[normalCounter++] = normal.y;
+            normalsA[normalCounter++] = normal.z;
+        }
+    }
+
+    private void readFile(BufferedReader reader){
+        String temp = "";
+        try {
+            while ((temp = reader.readLine()) != null) {
+                String[] verts = temp.split(" ");
+                if (verts[0].compareTo("v") == 0) {
+
+                    vertices.add(new SimpleVector(Float.parseFloat(verts[1]),
+                            Float.parseFloat(verts[2]),
+                            Float.parseFloat(verts[3])));
+
+                    float x = Float.parseFloat(verts[1]);
+                    float y = Float.parseFloat(verts[2]);
+                    float z = Float.parseFloat(verts[3]);
+                    if(x < NegX.x){ NegX.x = x; }
+                    if(x > PosX.x){ PosX.x = x; }
+                    if(y < NegY.y){ NegY.y = y; }
+                    if(y > PosY.y){ PosY.y = y; }
+                    if(z < NegZ.z){ NegZ.z = z; }
+                    if(z > PosZ.z){ PosZ.z = z; }
+
+                } else if (verts[0].compareTo("vn") == 0) {
+                    normals.add(new SimpleVector(Float.parseFloat(verts[1]),
+                            Float.parseFloat(verts[2]),
+                            Float.parseFloat(verts[3])));
+
+                } else if (verts[0].compareTo("f")==0){
+
+                    String[] v1 = verts[1].split("/");
+                    Config c = new Config();
+
+                    c.v1 = Integer.parseInt(v1[0]); c.t1 = Integer.parseInt(v1[1]); c.n1 = Integer.parseInt(v1[2]);
+                    v1 = verts[2].split("/");
+                    c.v2 = Integer.parseInt(v1[0]); c.t2 = Integer.parseInt(v1[1]); c.n2 = Integer.parseInt(v1[2]);
+                    v1 = verts[3].split("/");
+                    c.v3 = Integer.parseInt(v1[0]); c.t3 = Integer.parseInt(v1[1]); c.n3 = Integer.parseInt(v1[2]);
+                    drawConfig.add(c);
+                }else if(verts[0].compareTo("vt")==0){
+                    uvs.add(new SimpleVector(Float.parseFloat(verts[1]),
+                            1f - Float.parseFloat(verts[2]), 0f));
+                }else{
+                    continue;
+                }
+            }
+        }catch (IOException e){e.printStackTrace(); }
     }
 }
