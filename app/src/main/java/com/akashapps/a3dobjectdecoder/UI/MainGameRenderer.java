@@ -69,7 +69,9 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
     private AnimatedObject mainCharacter;
     private Animation sample, punch;
     private ParticleSystemV2 particleSystem;
-
+    private int particle_red = 0;
+    private int particle_green = 0;
+    private int particle_blue = 0;
     public MainGameRenderer(Context ctx, TouchController controller) {
         this.context = ctx;
         this.controller = controller;
@@ -135,6 +137,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         listener = new BoxCollisionListener(characterGround);
         int program = Shader.generateShadersAndProgram(Shader.O3DVERTEXSHADER, Shader.O3DFRAGMENTSHADER);
         int refProgram = Shader.generateShadersAndProgram(Shader.REFLECTVERTEXSHADER, Shader.REFLECTFRAGMENTSHADER);
+        int ptLightProgram = Shader.getPointLightProgram(5);
         float tx = START_X;
         SimpleVector lightDirRight = new SimpleVector(-0.5f,0.5f,1f);
 
@@ -146,7 +149,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             block.setHeight(0.5f);
             block.setBredth(4f);
             block.setLocation(new SimpleVector(tx, START_Y, 0f));
-            block.setRenderProgram(refProgram, Shader.METHOD_2);
+            block.setRenderProgram(ptLightProgram, Shader.METHOD_3);
             block.setTextureOpacity(1f);
             block.setShininess(0.5f);
 
@@ -165,19 +168,19 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         houseGlass.setBredth(5f);
 */
         house.setLocation(new SimpleVector(START_X+7f,START_Y,START_Z-4f-5f));
-        house.setRenderProgram(refProgram, Shader.METHOD_2);
+        house.setRenderProgram(ptLightProgram, Shader.METHOD_3);
         house.setTextureOpacity(1f);
         house.setShininess(2f);
 
         houseGlass.setLocation(new SimpleVector(START_X+7f,START_Y,START_Z-4f-5f));
-        houseGlass.setRenderProgram(refProgram, Shader.METHOD_2);
+        houseGlass.setRenderProgram(ptLightProgram, Shader.METHOD_3);
         houseGlass.setTextureOpacity(1f);
         houseGlass.setShininess(5f);
 
         firstScene.addSceneObject(house);
         firstScene.addSceneObject(houseGlass);
 
-        Object3D skybox= new Object3D(R.raw.skybox_i,R.drawable.sky_t, context);
+        Object3D skybox= new Object3D(R.raw.skybox_i,R.drawable.night_sky_ii, context);
         skybox.setLength(100f);
         skybox.setHeight(100f);
         skybox.setBredth(100f);
@@ -194,13 +197,49 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             ground.setLength(10f);
             ground.setBredth(13f);
             ground.setLocation(new SimpleVector(tx,START_Y,-7f));
-            ground.setRenderProgram(refProgram, Shader.METHOD_2);
+            ground.setRenderProgram(ptLightProgram, Shader.METHOD_3);
             ground.setTextureOpacity(1f);
             ground.setShininess(0.5f);
 
             firstScene.addSceneObject(ground);
             tx+=10f;
         }
+
+        tx = START_X+5f;
+        for(int i=0;i<5;i++) {
+            Object3D pole = new Object3D(R.raw.light_pole_i,R.drawable.rickuii, context);
+            pole.setLength(1f);
+            pole.setBredth(3f);
+            pole.setHeight(8f);
+            pole.setLocation(new SimpleVector(tx,START_Y,-3f));
+            pole.setRenderProgram(ptLightProgram, Shader.METHOD_3);
+            pole.setTextureOpacity(1f);
+            pole.setShininess(0.5f);
+
+            firstScene.addSceneObject(pole);
+            tx+=8f;
+        }
+
+        float h = 7.5f;
+        float z = 0f;
+        float x = 8f;
+        float[] lights =
+                {1*x,h,z,1f,
+                2*x,h,z,1f,
+                3*x,h,z,1f,
+
+                7f-5f,2f,-5f,1f,
+                7f+5f,2f,-5f,1f};
+
+        float[] colors =
+                {0.2f,0.3f,0.9f,
+                0f,1f,0f,
+                0f,0f,1f,
+                1f,0.3f,0.02f,
+                1f,0.3f,0.02f};
+
+        Object3D.setPointLightPositions(lights);
+        Object3D.setPointLightColors(colors);
 
         tx = START_X+15f;
         for(int i=0;i<5;i++) {
@@ -209,7 +248,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             tree.setBredth(5f);
             tree.setHeight(7f);
             tree.setLocation(new SimpleVector(tx,START_Y,-5f));
-            tree.setRenderProgram(refProgram, Shader.METHOD_2);
+            tree.setRenderProgram(ptLightProgram, Shader.METHOD_3);
             tree.setTextureOpacity(1f);
             tree.setShininess(0f);
             firstScene.addSceneObject(tree);
@@ -222,7 +261,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             fence.setLength(10f);
             fence.setBredth(0.1f);
             fence.setLocation(new SimpleVector(tx,START_Y,-14f));
-            fence.setRenderProgram(refProgram, Shader.METHOD_2);
+            fence.setRenderProgram(ptLightProgram, Shader.METHOD_3);
             fence.setTextureOpacity(1f);
             fence.setShininess(0.5f);
             firstScene.addSceneObject(fence);
@@ -235,7 +274,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             road.setLength(10f);
             road.setBredth(10f);
             road.setLocation(new SimpleVector(tx, START_Y, 7f));
-            road.setRenderProgram(refProgram, Shader.METHOD_2);
+            road.setRenderProgram(ptLightProgram, Shader.METHOD_3);
             road.setTextureOpacity(1f);
             road.setShininess(1f);
 
@@ -246,7 +285,8 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         AssetManager am = context.getAssets();
         mainCharacter = new AnimatedObject(R.raw.person_model_i, R.drawable.rickuii,context);
         skybox.follow(mainCharacter);
-        mainCharacter.setRenderProgram(program);
+        //mainCharacter.setRenderProgram(ptLightProgram);
+        mainCharacter.getMain().setRenderProgram(ptLightProgram,Shader.METHOD_3);
 
         sample = mainCharacter.addAnimation(50, true);
         try{
@@ -291,17 +331,18 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         mainCharacter.setGravity(true);
         camera.follow(mainCharacter);
 
-        firstScene.setSceneLight(new SimpleVector(1f,1f,1f));
+        firstScene.setSceneLight(new SimpleVector(0.5f,2f,-2f));
         skybox.setMainLight(new SimpleVector(0f,1f,1f));
-        mainCharacter.setMainLight(new SimpleVector(0.5f,-1f,-0.5f));
+        mainCharacter.setMainLight(new SimpleVector(0.5f,1f,-1f));
         //house.setMainLight(lightDirRight);
 
         particleSystem = new ParticleSystemV2(2000);
         particleSystem.setBlendType(ParticleSystemV2.LIGHT_BLEND);
-        particleSystem.setPointerSize(20f);
+        particleSystem.setPointerSize(30f);
         particleSystem.setTimeOnScreen(4f);
         particleSystem.generateShadersAndProgram();
         particleSystem.loadTexture(context, R.drawable.q_particle_v);
+
     }
 
     @Override
@@ -331,13 +372,22 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         }
 
         if(dPad.isClicked()){
+            if(particle_red<255) particle_red+=1;
+            else particle_red = 0;
+
+            if(particle_blue<255-2) particle_blue+=2;
+            else particle_blue = 0;
+
+            if(particle_green<255-3) particle_green+=3;
+            else particle_green=0;
+
             if(characterGround.isSTILL_COLLIDING()) {
                 float rotY = mainCharacter.getMain().getRotation().y;
                 if (dPad.activeDpadX > 0) {
                     if (rotY < 90) {
                         mainCharacter.getMain().rotateY(10f);
                     }
-                    particleSystem.addParticles(40, Color.rgb(200,100,40),
+                    particleSystem.addParticles(40, Color.rgb(particle_red,particle_green,particle_blue),
                             new SimpleVector(mainCharacter.getLocation().x,
                                     mainCharacter.getLocation().y-mainCharacter.getHeight()/5,
                                     mainCharacter.getLocation().z),
@@ -348,7 +398,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
                     if (rotY > -90) {
                         mainCharacter.getMain().rotateY(-10f);
                     }
-                    particleSystem.addParticles(40, Color.rgb(200,100,40),
+                    particleSystem.addParticles(40, Color.rgb(particle_red,particle_green,particle_blue),
                             new SimpleVector(mainCharacter.getLocation().x,
                                     mainCharacter.getLocation().y-mainCharacter.getHeight()/5,
                                     mainCharacter.getLocation().z),

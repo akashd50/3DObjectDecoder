@@ -39,6 +39,7 @@ public class Object3D extends SceneObject {
     private int[] normalMap;
     private int mTextureId;
 
+    private static float[] pointLightPositions, pointLightColors;
     private float shininess, ambientLightVal, textureOpacity, originalLightAngleY;
 
     private SimpleVector NegX, PosX, NegY, PosY, NegZ, PosZ, mainlight, lightColor, location, rotation, scale, eyeLocation;
@@ -133,57 +134,78 @@ public class Object3D extends SceneObject {
 
         Matrix.multiplyMM(scratch,0,mMVPMatrix,0, transformationMatrix,0);
 
-      /*  float[] modelView = new float[16];
-        float[] tempMat = new float[16];
-        float[] invModelView = new float[16];
 
-        Matrix.setIdentityM(modelView,0);
-        Matrix.multiplyMM(modelView,0,VIEW_MATRIX,0,transformationMatrix,0);
-        Matrix.invertM(tempMat,0,modelView, 0);
-        Matrix.transposeM(invModelView,0,tempMat,0);
-*/
         //drawing------------------------------------------------
-        setProgramAndUMat(scratch);
-        if(DRAW_METHOD==Shader.METHOD_2){
-            setTransformationMatrix(transformationMatrix);
 
-          /*  final float[] vectorToLightInEyeSpace = new float[4];
-            float[] vectorToLight = {mainlight.x,mainlight.y,mainlight.z,0.0f};
-            Matrix.multiplyMV(vectorToLightInEyeSpace, 0, VIEW_MATRIX, 0, vectorToLight, 0);
-            setULightVector(vectorToLightInEyeSpace);
-*/
-          setULightVector();
-        }else if(DRAW_METHOD==Shader.METHOD_3){
-            //setViewAndInvrViewMatrices(modelView, invModelView);
-        }else if(DRAW_METHOD==Shader.METHOD_1){
+        if(DRAW_METHOD == Shader.METHOD_1) {
+            setProgramAndUMat(scratch);
             setULightVector();
-        }
+            setAmbientLightVector();
+            setOpacityVector();
+            setLightColorVector();
+            setUTextureUnit();
+            setPositionVectors();
+            setNormalVectors();
+            setTextureVectors();
 
-        setAmbientLightVector();
-        setOpacityVector();
-        if(DRAW_METHOD==Shader.METHOD_2) {
+        }else if(DRAW_METHOD == Shader.METHOD_2){
+            setProgramAndUMat(scratch);
+            setTransformationMatrix(transformationMatrix);
+            setULightVector();
+            setAmbientLightVector();
+            setOpacityVector();
             setShinninessValue();
             setEyeVector();
+            setLightColorVector();
+            setUTextureUnit();
+            setPositionVectors();
+            setNormalVectors();
+            setTextureVectors();
+
+        }else if(DRAW_METHOD==Shader.METHOD_3){
+            float[] modelView = new float[16];
+            float[] tempMat = new float[16];
+            float[] invModelView = new float[16];
+
+            float[] vectorToLight = {mainlight.x,mainlight.y,mainlight.z,0.0f};
+            final float[] vectorToLightInEyeSpace = new float[4];
+            final float[] ptLightInEyeSpace = new float[pointLightPositions.length];
+
+            Matrix.multiplyMM(modelView,0,VIEW_MATRIX,0,transformationMatrix,0);
+            Matrix.invertM(tempMat,0,modelView, 0);
+            Matrix.transposeM(invModelView,0,tempMat,0);
+
+            setProgramAndUMat(scratch);
+            setViewAndInvrViewMatrices(modelView, invModelView);
+
+            Matrix.multiplyMV(vectorToLightInEyeSpace, 0, VIEW_MATRIX, 0, vectorToLight, 0);
+            setULightVector(vectorToLightInEyeSpace);
+
+            for(int i=0;i<pointLightPositions.length/4;i++) {
+                int offset = i*4;
+                Matrix.multiplyMV(ptLightInEyeSpace, offset, VIEW_MATRIX, 0, pointLightPositions, offset);
+                //Matrix.multiplyMV(ptLightInEyeSpace, 4, VIEW_MATRIX, 0, lights, 4);
+                //Matrix.multiplyMV(ptLightInEyeSpace, 8, VIEW_MATRIX, 0, lights, 8);
+            }
+
+            setPointLights(ptLightInEyeSpace, pointLightColors);
+
+            setAmbientLightVector();
+            setOpacityVector();
+            setLightColorVector();
+            setEyeVector();
+            setUTextureUnit();
+            setShinninessValue();
+            setPositionVectors();
+            setNormalVectors();
+            setTextureVectors();
         }
-        setLightColorVector();
-        setUTextureUnit();
-        setPositionVectors();
-        setNormalVectors();
-        setTextureVectors();
 
         GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, vertexCount);
-
         GLES20.glDisableVertexAttribArray(mPositionHandle);
         GLES20.glDisableVertexAttribArray(normalHandle);
         GLES20.glDisableVertexAttribArray(aTextureHandle);
 
-       /* if(DRAW_METHOD == Shader.METHOD_1) {
-                   drawHelper(scratch);
-        }else if(DRAW_METHOD == Shader.METHOD_2){
-            drawHelper2(scratch);
-        }else if(DRAW_METHOD==Shader.METHOD_3){
-
-        }*/
     }
     private void setProgramAndUMat(float[] mMVPMatrix){
         GLES20.glUseProgram(mProgram);
@@ -201,6 +223,15 @@ public class Object3D extends SceneObject {
         trMatrix = GLES20.glGetUniformLocation(mProgram, "inv_view_transformation");
         GLES20.glUniformMatrix4fv(trMatrix , 1, false, invView, 0);
     }
+
+    private void setPointLights(float[] lights, float[] colors){
+        int point = GLES20.glGetUniformLocation(mProgram, "u_PointLightPositions");
+        GLES20.glUniform4fv(point , lights.length/4, lights, 0);
+
+        int color = GLES20.glGetUniformLocation(mProgram, "u_PointLightColors");
+        GLES20.glUniform3fv(color, colors.length/3, colors, 0);
+    }
+
     private void setULightVector(){
         int vectorToLight = GLES20.glGetUniformLocation(mProgram, LiGHT_LOCATION);
         GLES20.glUniform3f(vectorToLight, mainlight.x, mainlight.y, mainlight.z);
@@ -269,6 +300,13 @@ public class Object3D extends SceneObject {
         int normalMapHandle = GLES20.glGetAttribLocation(mProgram,"a_NormalCoordinates");
         GLES20.glVertexAttribPointer(normalMapHandle,2,GLES20.GL_FLOAT,false,8,mTextureBuffer);
         GLES20.glEnableVertexAttribArray(normalMapHandle);
+    }
+
+    public static void setPointLightPositions(float[] positions){
+        pointLightPositions = positions;
+    }
+    public static void setPointLightColors(float[] colors){
+        pointLightColors = colors;
     }
 
     public static void setViewMatrix(float[] matrix){

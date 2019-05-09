@@ -80,7 +80,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         textDecoder = new TextDecoder(context);
         scene = new Scene();
         scene.setCamera(camera);
-       // int program = Shader.generateShadersAndProgram(Shader.O3DVERTEXSHADER, Shader.O3DFRAGMENTSHADER);
+        //int program = Shader.generateShadersAndProgram(Shader.PT_LIGHT_VTX_SHADER, Shader.PT_LIGHT_FRAG_SHADER);
         int refProgram = Shader.generateShadersAndProgram(Shader.REFLECTVERTEXSHADER, Shader.REFLECTFRAGMENTSHADER);
 
         switch (ObjectID){
@@ -88,9 +88,9 @@ public class GLRenderer implements GLSurfaceView.Renderer {
                 cube = new Object3D(R.raw.rick_ship_base, R.drawable.rickuii, context);
                 cube2 = new Object3D(R.raw.rick_ship_glass, R.drawable.rickuii, context);
                 cube3 = new Object3D(R.raw.rick_ship_cylinders, R.drawable.rickuii, context);
-                cube.setShininess(2f);
-                cube2.setShininess(1f);
-                cube3.setShininess(2f);
+                cube.setShininess(3f);
+                cube2.setShininess(4f);
+                cube3.setShininess(3f);
                 scene.addSceneObject(cube);
                 scene.addSceneObject(cube2);
                 scene.addSceneObject(cube3);
@@ -100,8 +100,8 @@ public class GLRenderer implements GLSurfaceView.Renderer {
                 cube2 = new Object3D(R.raw.gunmettalic_i, R.drawable.rickuii, context);
                 cube3 = new Object3D(R.raw.gunmag_i, R.drawable.rickuii, context);
                 cube.setShininess(1f);
-                cube2.setShininess(6.0f);
-                cube3.setShininess(4.0f);
+                cube2.setShininess(3.0f);
+                cube3.setShininess(3.0f);
                 scene.addSceneObject(cube);
                 scene.addSceneObject(cube2);
                 scene.addSceneObject(cube3);

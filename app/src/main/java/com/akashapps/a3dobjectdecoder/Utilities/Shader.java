@@ -17,16 +17,15 @@ public class Shader {
                     "uniform vec4 u_PointLightPositions[3];" +
                     "uniform vec3 u_PointLightColors[3];"+
 
-                            "uniform vec3 v_lightCol;"+
-                            "uniform float v_opacity;"+
-                            "uniform float v_ambient;"+
-                            "uniform vec3 inverseEye;"+
-                            "uniform float shininess;"+
-                            "uniform vec3 v_VectorToLight;"+
+                    "uniform vec3 v_lightCol;"+
+                    "uniform float v_opacity;"+
+                    "uniform float v_ambient;"+
+                    "uniform vec3 inverseEye;"+
+                    "uniform float shininess;"+
+                    "uniform vec3 v_VectorToLight;"+
 
                     "attribute vec4 a_Position;" +
                     "varying vec3 v_Normal;"+
-                    "varying vec3 mvp_normal;"+
                     "attribute vec2 a_TextureCoordinates;" +
                     "varying vec2 v_TextureCoordinates;" +
                     "attribute vec3 a_Normal;"+
@@ -34,6 +33,7 @@ public class Shader {
                     "vec3 materialColor;" +
                     "vec4 eyeSpacePosition;" +
                     "vec3 eyeSpaceNormal;"+
+                            "vec3 mvp_normal;"+
 
                     "vec3 getAmbientLighting();" +
                     "vec3 getDirectionalLighting();" +
@@ -43,24 +43,22 @@ public class Shader {
                     "void main()" +
                     "{" +
                         "eyeSpacePosition = view_transformation_matrix * a_Position;"+
-                        "eyeSpaceNormal = normalize(vec3(inv_view_transformation * vec4(a_Normal,0.0)));"+
+                        "eyeSpaceNormal = normalize((inv_view_transformation * vec4(a_Normal,0.0)).xyz);"+
 
-                        //"mvp_normal = normalize((u_Matrix * vec4(a_Normal,0.0)).xyz);"+
+                        "mvp_normal = normalize((view_transformation_matrix * vec4(a_Normal,0.0)).xyz);"+
                        // "v_Normal = normalize((transformation_matrix * vec4(a_Normal,0.0)).xyz);"+
 
 
-                      /*      "vec3 inv_light = vec3(0) - v_VectorToLight;"+
-                            "vec3 lightReflectionDirection = reflect(inv_light, mvp_normal);"+
-                            "float normalDotRef = max(v_opacity, dot(normalize(inverseEye), lightReflectionDirection));"+
+                      /*
 
                             "float diffuse = max(dot(v_Normal, normalize(v_VectorToLight)), v_ambient);" +
                             "vec3 f_color = v_lightCol * diffuse;"+*/
 
                             //"v_lightVal = pow(normalDotRef,shininess) + vec4(f_color,v_opacity)"+
 
-                           "v_lightVal  = getAmbientLighting();" +
-                           "v_lightVal  += getDirectionalLighting();" +
-                            "v_lightVal += getPointLighting();"+
+                        "v_lightVal  = getAmbientLighting();" +
+                        "v_lightVal  += getDirectionalLighting();" +
+                        "v_lightVal += getPointLighting();"+
 
                         "v_TextureCoordinates = a_TextureCoordinates;" +
 
@@ -69,24 +67,38 @@ public class Shader {
 
                     "vec3 getAmbientLighting()" +
                     "{" +
-                        "return 0.1;" +
+                        "return vec3(0.1,0.1,0.1);" +
                     "}" +
 
                     "vec3 getDirectionalLighting()" +
                     "{" +
+                        /*"vec3 inv_light = vec3(0) - v_VectorToLight;"+
+                        "vec3 lightReflectionDirection = reflect(inv_light, eyeSpaceNormal);"+
+                        "float normalDotRef = max(v_opacity, dot(normalize(inverseEye), lightReflectionDirection));"+*/
+                        //"return pow(normalDotRef,shininess);"+
                         "return v_lightCol * max(dot(eyeSpaceNormal, v_VectorToLight), 0.0);" +
                     "}"+
 
                     "vec3 getPointLighting()" +
                     "{" +
                         "vec3 lightingSum = vec3(0.0);" +
+
                         "for (int i = 0; i < 3; i++) {" +
                             "vec3 toPointLight = vec3(u_PointLightPositions[i]) - vec3(eyeSpacePosition);" +
                             "float distance = length(toPointLight);" +
                             "toPointLight = normalize(toPointLight);" +
+
+                           /* "vec3 inv_light = vec3(0) - toPointLight;"+
+                            "vec3 lightReflectionDirection = reflect(inv_light, mvp_normal);"+
+                            "float normalDotRef = max(v_opacity, dot(normalize(inverseEye), lightReflectionDirection));"+
+                            "float s = pow(normalDotRef,shininess);"+
+                            "vec3 spec_ref = s*u_PointLightColors[i]*vec3(1.0,1.0,1.0);"+*/
+
                             "float cosine = max(dot(eyeSpaceNormal, toPointLight), 0.0);" +
-                            "lightingSum += (u_PointLightColors[i] * 5.0 * cosine)/ distance;" +
+                            "lightingSum += (u_PointLightColors[i] * cosine)/ distance;" +
+                            //"lightingSum += spec_ref;"+
                         "}" +
+
                         "return lightingSum;" +
                     "}";
 
@@ -98,7 +110,7 @@ public class Shader {
                     "varying vec3 v_lightVal;"+
                     "void main()" +
                     "{" +
-                        "gl_FragColor =  v_lightVal*texture2D(u_TextureUnit, v_TextureCoordinates);" +
+                        "gl_FragColor =  vec4(v_lightVal,1.0)*texture2D(u_TextureUnit, v_TextureCoordinates);" +
                     "}";
 
 
@@ -288,6 +300,84 @@ public class Shader {
                     "gl_FragColor = vec4(f_color,1.0)*texture2D(u_TextureUnit, v_TextureCoordinates);" +
                     "}";
 
+    public static int getPointLightProgram(int numLights){
+        String vtx = "uniform mat4 u_Matrix;" +
+                "uniform mat4 view_transformation_matrix;"+
+                "uniform mat4 inv_view_transformation;"+
+                "uniform vec4 u_PointLightPositions["+numLights+"];" +
+                "uniform vec3 u_PointLightColors["+numLights+"];"+
+
+                "uniform vec3 v_lightCol;"+
+                "uniform float v_opacity;"+
+                "uniform float v_ambient;"+
+                "uniform vec3 inverseEye;"+
+                "uniform float shininess;"+
+                "uniform vec3 v_VectorToLight;"+
+
+                "attribute vec4 a_Position;" +
+                "varying vec3 v_Normal;"+
+                "attribute vec2 a_TextureCoordinates;" +
+                "varying vec2 v_TextureCoordinates;" +
+                "attribute vec3 a_Normal;"+
+
+                "vec3 materialColor;" +
+                "vec4 eyeSpacePosition;" +
+                "vec3 eyeSpaceNormal;"+
+                "vec3 mvp_normal;"+
+
+                "vec3 getAmbientLighting();" +
+                "vec3 getDirectionalLighting();" +
+                "vec3 getPointLighting();"+
+                "varying vec3 v_lightVal;"+
+
+                "void main()" +
+                "{" +
+                "eyeSpacePosition = view_transformation_matrix * a_Position;"+
+                "eyeSpaceNormal = normalize((inv_view_transformation * vec4(a_Normal,0.0)).xyz);"+
+
+                "mvp_normal = normalize((view_transformation_matrix * vec4(a_Normal,0.0)).xyz);"+
+                "v_lightVal  = getAmbientLighting();" +
+                "v_lightVal  += getDirectionalLighting();" +
+                "v_lightVal += getPointLighting();"+
+
+                "v_TextureCoordinates = a_TextureCoordinates;" +
+
+                "gl_Position = u_Matrix * a_Position;" +
+                "}"+
+
+                "vec3 getAmbientLighting()" +
+                "{" +
+                "return vec3(0.1,0.1,0.1);" +
+                "}" +
+
+                "vec3 getDirectionalLighting()" +
+                "{" +
+                    "return 0.3 * v_lightCol * max(dot(eyeSpaceNormal, v_VectorToLight), 0.0);" +
+                "}"+
+
+                "vec3 getPointLighting()" +
+                "{" +
+                    "vec3 lightingSum = vec3(0.0);" +
+                    "for (int i = 0; i < "+numLights+"; i++) {" +
+                        "vec3 toPointLight = vec3(u_PointLightPositions[i]) - vec3(eyeSpacePosition);" +
+                        "float distance = length(toPointLight);" +
+                        "toPointLight = normalize(toPointLight);" +
+                        "float cosine = max(dot(eyeSpaceNormal, toPointLight), 0.0);" +
+                        "lightingSum += (u_PointLightColors[i] *5.0* cosine)/ distance;" +
+                    "}" +
+                    "return lightingSum;" +
+                "}";
+        String frg =  "precision mediump float;" +
+                "uniform sampler2D u_TextureUnit;" +
+                "varying vec2 v_TextureCoordinates;" +
+                "varying vec3 v_lightVal;"+
+                "void main()" +
+                "{" +
+                "gl_FragColor =  vec4(v_lightVal,1.0)*texture2D(u_TextureUnit, v_TextureCoordinates);" +
+                "}";
+        return generateShadersAndProgram(vtx, frg);
+    }
+
     public static int generateShadersAndProgram(String vs, String fs){
         int vertexShad = loadShader(GLES20.GL_VERTEX_SHADER,
                 vs);
@@ -305,4 +395,5 @@ public class Shader {
         GLES20.glCompileShader(shader);
         return shader;
     }
+
 }
