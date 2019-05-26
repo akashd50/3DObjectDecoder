@@ -92,13 +92,26 @@ public class ParticleSystemV2 {
 
     public void addParticles(int numP, int color, SimpleVector pos, SimpleVector posVar, SimpleVector dir, SimpleVector dirVar){
         for(int i=0;i<numP;i++){
-            pos.x = pos.x - (posVar.x)/2 - (float)(Math.random()*posVar.x);
-            pos.y = pos.y - (posVar.y)/2 - (float)(Math.random()*posVar.y);
-            pos.z = pos.z - (posVar.z)/2 - (float)(Math.random()*posVar.z);
+            pos.x = pos.x +   (posVar.x)/2 - (float)(Math.random()*posVar.x);
+            pos.y = pos.y + (posVar.y)/2 - (float)(Math.random()*posVar.y);
+            pos.z = pos.z + (posVar.z)/2 - (float)(Math.random()*posVar.z);
 
             dir.x  = dir.x * (float)(Math.random());
             dir.y  = dir.y * (float)(Math.random());
             dir.z  = dir.z * (float)(Math.random());
+
+            if(dirVar.x==1f){
+                int rand = (int)(Math.random()*100);
+                if(rand%2==0) dir.x = -dir.x;
+            }
+            if(dirVar.y==1f){
+                int rand = (int)(Math.random()*100);
+                if(rand%2==0) dir.y= -dir.y;
+            }
+            if(dirVar.z==1f){
+                int rand = (int)(Math.random()*100);
+                if(rand%2==0) dir.z= -dir.z;
+            }
             addParticle(pos,color, dir);
         }
     }
@@ -292,7 +305,7 @@ public class ParticleSystemV2 {
                         "varying float v_ElapsedTime;" +
                         "void main(){" +
                             "if(v_ElapsedTime<"+timeOnScreen+"){" +
-                                "gl_FragColor = vec4(v_Color/v_ElapsedTime,1.0) * texture2D(u_TextureUnit, gl_PointCoord);" +
+                                "gl_FragColor = vec4(v_Color/((v_ElapsedTime/"+timeOnScreen+")*10.0),1.0) * texture2D(u_TextureUnit, gl_PointCoord);" +
                             "}" +
                         "}";
 

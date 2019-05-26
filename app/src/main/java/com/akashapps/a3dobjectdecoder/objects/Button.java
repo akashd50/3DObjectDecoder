@@ -13,6 +13,7 @@ public class Button extends Controller {
         location = new SimpleVector(0f,0f,0f);
         this.dimensions = new SimpleVector(dimensions.x,dimensions.y,0f);
         isClicked = false;
+        buttonIcon.setOpacity(1.0f);
     }
 
     @Override

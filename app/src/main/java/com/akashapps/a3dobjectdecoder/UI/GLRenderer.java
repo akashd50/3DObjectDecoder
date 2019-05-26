@@ -12,12 +12,15 @@ import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 import com.akashapps.a3dobjectdecoder.objects.Camera;
+import com.akashapps.a3dobjectdecoder.objects.Light;
+import com.akashapps.a3dobjectdecoder.objects.LightingSystem;
 import com.akashapps.a3dobjectdecoder.objects.ObjDecoder;
 import com.akashapps.a3dobjectdecoder.objects.Object3D;
 import com.akashapps.a3dobjectdecoder.objects.ObjectDecoderWLS;
 import com.akashapps.a3dobjectdecoder.R;
 import com.akashapps.a3dobjectdecoder.objects.Scene;
 import com.akashapps.a3dobjectdecoder.objects.SimpleVector;
+import com.akashapps.a3dobjectdecoder.objects.Texture;
 import com.akashapps.a3dobjectdecoder.objects.TexturedPlane;
 import com.akashapps.a3dobjectdecoder.logic.TouchController;
 import com.akashapps.a3dobjectdecoder.Utilities.*;
@@ -59,6 +62,8 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     private boolean processesDone = false;
     public static boolean PAUSED = true;
     private Camera camera;
+    private LightingSystem lightingSystem;
+
     //private ObjDecoder cone;
     public GLRenderer(Context ctx, TouchController controller, int objID) {
         this.context = ctx;
@@ -80,8 +85,26 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         textDecoder = new TextDecoder(context);
         scene = new Scene();
         scene.setCamera(camera);
-        //int program = Shader.generateShadersAndProgram(Shader.PT_LIGHT_VTX_SHADER, Shader.PT_LIGHT_FRAG_SHADER);
+        lightingSystem = new LightingSystem();
+        Light l = new Light(new SimpleVector(4f,0f,1f),new SimpleVector(0.1f,0.1f,1.0f),
+                new SimpleVector(0.0f,0.0f,0.1f), new SimpleVector(0f,0f,0f));
+        l.setIntensity(8f);
+        lightingSystem.addLight(l);
+
+        l = new Light(new SimpleVector(-0.5f,1f,7f),new SimpleVector(0f,1f,0f),
+                new SimpleVector(0.0f,0.15f,0.0f), new SimpleVector(0f,0f,0f));
+        l.setIntensity(7f);
+        lightingSystem.addLight(l);
+
+        l = new Light(new SimpleVector(-10f,1f,-1f),new SimpleVector(0f,0f,1f),
+                new SimpleVector(0.0f,0.0f,0.2f), new SimpleVector(0f,0f,0f));
+        l.setIntensity(8f);
+        lightingSystem.addLight(l);
+
+
+        int program = Shader.getPointLightProgram(3);
         int refProgram = Shader.generateShadersAndProgram(Shader.REFLECTVERTEXSHADER, Shader.REFLECTFRAGMENTSHADER);
+        Texture rickuii = new Texture("multi", context, R.drawable.rickuii);
 
         switch (ObjectID){
             case 0:
@@ -92,8 +115,13 @@ public class GLRenderer implements GLSurfaceView.Renderer {
                 cube2.setShininess(4f);
                 cube3.setShininess(3f);
                 scene.addSceneObject(cube);
-                scene.addSceneObject(cube2);
                 scene.addSceneObject(cube3);
+                scene.addSceneObject(cube2);
+
+                cube.setTextureUnit(rickuii);
+                cube2.setTextureUnit(rickuii);
+                cube3.setTextureUnit(rickuii);
+
                 break;
             case 1:
                 cube = new Object3D(R.raw.gunhandle_i, R.drawable.rickuii, context);
@@ -105,6 +133,11 @@ public class GLRenderer implements GLSurfaceView.Renderer {
                 scene.addSceneObject(cube);
                 scene.addSceneObject(cube2);
                 scene.addSceneObject(cube3);
+
+                cube.setTextureUnit(rickuii);
+                cube2.setTextureUnit(rickuii);
+                cube3.setTextureUnit(rickuii);
+
                 break;
         }
 
@@ -112,14 +145,17 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         cube.setMainLight(light);
         cube2.setMainLight(light);
         cube3.setMainLight(light);
-
+/*
         cube.setRenderProgram(refProgram, Shader.METHOD_2);
         cube2.setRenderProgram(refProgram, Shader.METHOD_2);
-        cube3.setRenderProgram(refProgram, Shader.METHOD_2);
+        cube3.setRenderProgram(refProgram, Shader.METHOD_2);*/
 
+        cube.setRenderProgram(program, Shader.METHOD_3);
+        cube2.setRenderProgram(program, Shader.METHOD_3);
+        cube3.setRenderProgram(program, Shader.METHOD_3);
 
         cube.setTextureOpacity(1f);
-        cube2.setTextureOpacity(1.0f);
+        cube2.setTextureOpacity(0.4f);
         cube3.setTextureOpacity(1.0f);
 
         System.out.println("================================== L|B|H+======"+cube2.getLength()+
@@ -128,6 +164,8 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         cube.setLocation(new SimpleVector(0f,0f,-3f));
         cube2.setLocation(new SimpleVector(0f,0f,-3f));
         cube3.setLocation(new SimpleVector(0f,0f,-3f));
+
+        scene.setLightingSystem(lightingSystem);
 
     }
 

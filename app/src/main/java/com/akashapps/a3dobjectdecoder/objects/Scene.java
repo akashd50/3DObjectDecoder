@@ -4,9 +4,7 @@ import java.util.ArrayList;
 
 public class Scene {
     private ArrayList<SceneObject> objects;
-
-
-
+    private LightingSystem lightingSystem;
     private Camera camera;
     //private ArrayList<AnimatedObject> animatedObjects;
     public Scene(){
@@ -68,5 +66,15 @@ public class Scene {
 
     public void setCamera(Camera camera) {
         this.camera = camera;
+    }
+    public LightingSystem getLightingSystem() {
+        return lightingSystem;
+    }
+
+    public void setLightingSystem(LightingSystem lightingSystem) {
+        this.lightingSystem = lightingSystem;
+        for(SceneObject s: objects){
+            s.setLightingSystem(this.lightingSystem);
+        }
     }
 }

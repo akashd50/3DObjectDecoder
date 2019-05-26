@@ -28,7 +28,7 @@ public class DPad extends Controller{
     public float activeDpadX = REST_STEP;
     public float activeDpadY = REST_STEP;
 
-    private float currSpeed, length;
+    private float currSpeed, length, lastActiveDpadX, lastActiveDpadY;
 
     private boolean isClicked;
     private String type;
@@ -44,6 +44,8 @@ public class DPad extends Controller{
         Bitmap bp = null;
         icon = new TexturedPlane(scale,scale,context, R.drawable.slider_iconn);
         background = new TexturedPlane(scale*2,scale*2,context, R.drawable.dpad_back);
+        icon.setOpacity(1.0f);
+        background.setOpacity(1.0f);
 
         background.setDefaultTrans(center.x,center.y,center.z+2f);
         icon.setDefaultTrans(center.x,center.y,center.z+2.5f);
@@ -149,6 +151,9 @@ public class DPad extends Controller{
         icon.changeTransform(icon.getDefaultX(), icon.getDefaultY(),icon.getDefaultZ());
         /*dPad.changeTrasnformY(dPad.getDefaultY());
         dPad.changeTrasnformX(dPad.getDefaultX());*/
+        lastActiveDpadX = activeDpadX;
+        lastActiveDpadY = activeDpadY;
+
         activeDpadX = REST_STEP;
         activeDpadY = REST_STEP;
         PREVIOUS_DIR_HOR = currDirHor;
@@ -156,7 +161,8 @@ public class DPad extends Controller{
         currDirHor = null;
         icon.changeTransform(icon.getDefaultX(),icon.getDefaultY(),icon.getDefaultZ());
     }
-
+    public float getLastActiveDpadX(){return lastActiveDpadX;}
+    public float getLastActiveDpadY(){return lastActiveDpadY;}
     public float getLength(){ return this.length;}
     public String getType(){return this.type;}
 

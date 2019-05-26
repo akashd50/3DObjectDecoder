@@ -18,7 +18,7 @@ import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 
-public class ObjectDecoderWLS extends SceneObject{
+public class ObjectDecoderWLS{
     private int id;
     private ArrayList<SimpleVector> vertices;
     private ArrayList<SimpleVector> normals;

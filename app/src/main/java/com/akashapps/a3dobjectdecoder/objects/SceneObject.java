@@ -3,8 +3,8 @@ package com.akashapps.a3dobjectdecoder.objects;
 public abstract class SceneObject {
     protected boolean GRAVITY_ON;
     protected float verticalAcc, horizontalAcc;
-    public static float DEFAULT_GRAVITY_UPDATE = -0.001f;
-    public static float DEFAULT_HORIZONTAL_DRAG = 0.01f;
+    public static final float DEFAULT_GRAVITY_UPDATE = -0.001f;
+    public static final float DEFAULT_HORIZONTAL_DRAG = 0.001f;
 
     protected SceneObject followingObject;
 
@@ -43,6 +43,7 @@ public abstract class SceneObject {
     public void follow(SceneObject s){
         this.followingObject = s;
     }
+    public abstract void setLightingSystem(LightingSystem lightingSystem);
     public float getHorizontalVel() {
         return horizontalAcc;
     }

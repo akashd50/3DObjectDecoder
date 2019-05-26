@@ -23,6 +23,7 @@ import java.nio.FloatBuffer;
 import java.util.ArrayList;
 
 public class Object3D extends SceneObject {
+    private static int ObjectID = 1000;
     private int id;
     private static float[] VIEW_MATRIX;
     private ArrayList<SimpleVector> vertices, normals, uvs;
@@ -34,6 +35,7 @@ public class Object3D extends SceneObject {
     private static final int BYTES_PER_FLOAT = 4;
     private static int vertexStride = (COORDS_PER_VERTEX )* 4;
     private int mMVPMatrixHandle, aTextureHandle, textureUniform;
+    private Texture textureUnit;
 
     private int[] textures = new int[1];
     private int[] normalMap;
@@ -53,8 +55,13 @@ public class Object3D extends SceneObject {
     private Collider collider;
 
     private Context context;
+    private FloatBuffer defaultVtxBuffer;
+    private LightingSystem lightingSystem;
+
     public Object3D(int fileId, int texId, Context context){
         //lAngleX = 0f;lAngleY=0f;lAngleZ=1f;
+        this.id = ObjectID++;
+
         transformationMatrix = new float[16];
         location = new SimpleVector(0f,0f,0f);
         rotation = new SimpleVector(0f,0f,0f);
@@ -113,8 +120,9 @@ public class Object3D extends SceneObject {
         normalBuffer.put(normalsA);
         normalBuffer.position(0);
         //generateProgram();
-        loadTexture(context,texId);
+        //loadTexture(context,texId);
         DRAW_METHOD = 0;
+        defaultVtxBuffer = vertexBuffer;
     }
 
     public void onDrawFrame(float[] mMVPMatrix){
@@ -169,7 +177,10 @@ public class Object3D extends SceneObject {
 
             float[] vectorToLight = {mainlight.x,mainlight.y,mainlight.z,0.0f};
             final float[] vectorToLightInEyeSpace = new float[4];
-            final float[] ptLightInEyeSpace = new float[pointLightPositions.length];
+
+            float[] loc = lightingSystem.getLightsLocationArray();
+
+            final float[] ptLightInEyeSpace = new float[loc.length];
 
             Matrix.multiplyMM(modelView,0,VIEW_MATRIX,0,transformationMatrix,0);
             Matrix.invertM(tempMat,0,modelView, 0);
@@ -181,14 +192,16 @@ public class Object3D extends SceneObject {
             Matrix.multiplyMV(vectorToLightInEyeSpace, 0, VIEW_MATRIX, 0, vectorToLight, 0);
             setULightVector(vectorToLightInEyeSpace);
 
-            for(int i=0;i<pointLightPositions.length/4;i++) {
+            for(int i=0;i<loc.length/4;i++) {
                 int offset = i*4;
-                Matrix.multiplyMV(ptLightInEyeSpace, offset, VIEW_MATRIX, 0, pointLightPositions, offset);
+                Matrix.multiplyMV(ptLightInEyeSpace, offset, VIEW_MATRIX, 0, loc, offset);
                 //Matrix.multiplyMV(ptLightInEyeSpace, 4, VIEW_MATRIX, 0, lights, 4);
                 //Matrix.multiplyMV(ptLightInEyeSpace, 8, VIEW_MATRIX, 0, lights, 8);
             }
 
-            setPointLights(ptLightInEyeSpace, pointLightColors);
+            setPointLights(ptLightInEyeSpace, lightingSystem.getLightsDiffuseArray());
+            setPointLightSpecular(lightingSystem.getLightsSpecArray());
+            setPointLightIntensity(lightingSystem.getLightIntensityArray());
 
             setAmbientLightVector();
             setOpacityVector();
@@ -200,6 +213,9 @@ public class Object3D extends SceneObject {
             setNormalVectors();
             setTextureVectors();
         }
+
+        GLES20.glEnable(GLES20.GL_BLEND);
+        GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
 
         GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, vertexCount);
         GLES20.glDisableVertexAttribArray(mPositionHandle);
@@ -230,6 +246,29 @@ public class Object3D extends SceneObject {
 
         int color = GLES20.glGetUniformLocation(mProgram, "u_PointLightColors");
         GLES20.glUniform3fv(color, colors.length/3, colors, 0);
+
+        /*int point = GLES20.glGetUniformLocation(mProgram, "u_PointLightPositions");
+        float[] loc = lightingSystem.getLightsLocationArray();
+        GLES20.glUniform4fv(point , loc.length/4, loc, 0);
+
+        int color = GLES20.glGetUniformLocation(mProgram, "u_PointLightColors");
+        float[] diff = lightingSystem.getLightsDiffuseArray();
+        GLES20.glUniform3fv(color, diff.length/3, diff, 0);*/
+    }
+
+    private void setPointLightDiffuse(float[] diffuse){
+        int color = GLES20.glGetUniformLocation(mProgram, "u_PointLightColors");
+        GLES20.glUniform3fv(color, diffuse.length/3, diffuse, 0);
+    }
+
+    private void setPointLightIntensity(float[] i){
+        int color = GLES20.glGetUniformLocation(mProgram, "intensity");
+        GLES20.glUniform1fv(color, i.length, i, 0);
+    }
+
+    private void setPointLightSpecular(float[] specular){
+        int color = GLES20.glGetUniformLocation(mProgram, "u_PointLightSpecular");
+        GLES20.glUniform3fv(color, specular.length/3, specular, 0);
     }
 
     private void setULightVector(){
@@ -263,7 +302,7 @@ public class Object3D extends SceneObject {
     private void setUTextureUnit(){
         textureUniform = GLES20.glGetUniformLocation(mProgram,"u_TextureUnit");
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures[0]);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureUnit.getTexture());
         GLES20.glUniform1i(textureUniform, 0);
     }
     private void setPositionVectors(){
@@ -302,6 +341,11 @@ public class Object3D extends SceneObject {
         GLES20.glEnableVertexAttribArray(normalMapHandle);
     }
 
+    public void setTextureUnit(Texture t){
+        textureUnit = t;
+    }
+    public Texture getTextureUnit(){return textureUnit;}
+
     public static void setPointLightPositions(float[] positions){
         pointLightPositions = positions;
     }
@@ -323,9 +367,10 @@ public class Object3D extends SceneObject {
     }
 
     public void resetVertexBufferTD(){
-        vertexBuffer.clear();
+        /*vertexBuffer.clear();
         vertexBuffer.put(verticesA);
-        vertexBuffer.position(0);
+        vertexBuffer.position(0);*/
+        vertexBuffer = defaultVtxBuffer;
     }
     public void updateVertexBuffer(float[] vertices){
         vertexBuffer.clear();
@@ -346,6 +391,7 @@ public class Object3D extends SceneObject {
 
     public void setVertexBuffer(FloatBuffer fb){
         vertexBuffer = fb;
+        //vertexBuffer.put(fb);
     }
     public void setNormalBuffer(FloatBuffer fb){
         normalBuffer = fb;
@@ -457,14 +503,13 @@ public class Object3D extends SceneObject {
     public float getLength(){
         return PosX.x - NegX.x;
     }
-
     public float getBreadth(){
         return PosZ.z - NegZ.z;
     }
-
     public float getHeight(){
         return PosY.y - NegY.y;
     }
+    public SimpleVector getScale(){return this.scale;}
     public SimpleVector getRotation(){return rotation;}
 
     public void setLength(float x){
@@ -518,8 +563,17 @@ public class Object3D extends SceneObject {
         }
     }
 
+    public LightingSystem getLightingSystem() {
+        return lightingSystem;
+    }
 
+    public void setLightingSystem(LightingSystem lightingSystem) {
+        this.lightingSystem = lightingSystem;
+    }
 
+    public int getId() {
+        return id;
+    }
 
 
 

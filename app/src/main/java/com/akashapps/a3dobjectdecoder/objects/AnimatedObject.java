@@ -13,6 +13,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 
 public class AnimatedObject extends SceneObject{
@@ -20,13 +21,20 @@ public class AnimatedObject extends SceneObject{
     private int frameNum,currArrayFrame, numAnimations, currentlyPlaying, nextAnimTBPlayed;
     private HashMap<Integer, Animation> animations;
     private Object3D firstObject;
+    private HashMap<Integer, Pose> poses;
+    private HashMap<Integer, HashMap<Integer, Animation>> poseAnims;
    // private FloatBuffer[] vertexBuffer, normalBuffer;
     private Context context;
     private Animation currentlyPlayingAnimation;
+    private Pose activePose;
 
     public AnimatedObject(int fileID, int textFile, Context c){
         this.context = c;
         animations = new HashMap<>();
+
+        poseAnims = new HashMap<>();
+        poses = new HashMap<>();
+
         frameNum = 0;
         textureID = textFile;
         currArrayFrame = 0;
@@ -34,6 +42,37 @@ public class AnimatedObject extends SceneObject{
        // normalBuffer = new FloatBuffer[num];
         firstObject = new Object3D(fileID, textureID, context);
     }
+
+    public Pose addPose(int fileId){
+        Pose p = new Pose(fileId, firstObject.getConfiguration(), context);
+        poses.put(p.getId(), p);
+        poseAnims.put(p.getId(), new HashMap<Integer, Animation>());
+        return p;
+    }
+
+    public Animation addAnimation(int pID, int numFrames, boolean indeterminate){
+        Pose p = poses.get(pID);
+        Animation a = new Animation(numFrames, firstObject.getConfiguration(), context);
+        a.setIndeterminate(indeterminate);
+        poseAnims.get(pID).put(a.getID(), a);
+        return a;
+    }
+
+    public void setActivePose(int pID){
+        activePose = poses.get(pID);
+        firstObject.setVertexBuffer(activePose.getPose());
+    }
+
+    public void setAnimationTBP(int animID){
+        currentlyPlayingAnimation = poseAnims.get(activePose.getId()).get(animID);
+    }
+
+    public void setAnimationTBP(int pID, int animID){
+        activePose = poses.get(pID);
+        firstObject.setVertexBuffer(activePose.getPose());
+        currentlyPlayingAnimation = poseAnims.get(pID).get(animID);
+    }
+
 
     public Animation addAnimation(int numFrames, boolean indeterminate){
         Animation a = new Animation(numFrames, firstObject.getConfiguration(), context);
@@ -46,6 +85,7 @@ public class AnimatedObject extends SceneObject{
         //if(currentlyPlaying == 0){
         if(id!=currentlyPlaying) {
             currentlyPlaying = id;
+            //if(currentlyPlayingAnimation!=null) currentlyPlayingAnimation.resetAnimation();
             currentlyPlayingAnimation = animations.get(id);
         }
         /*}else{
@@ -53,25 +93,66 @@ public class AnimatedObject extends SceneObject{
         }*/
     }
 
-    public void onDrawFrame(float[] mMVPMatrix){
+    public void onDrawFrame2(float[] mMVPMatrix){
         //gravity
         firstObject.updateLocation(new SimpleVector(super.horizontalAcc,super.verticalAcc,0f));
+
         if (currentlyPlayingAnimation != null) {
             if (currentlyPlayingAnimation.isFinished()) {
-                firstObject.resetVertexBufferTD();
+                firstObject.setVertexBuffer(activePose.getPose());
+
+                currentlyPlayingAnimation.resetAnimation();
+
                 currentlyPlayingAnimation = null;
-                currentlyPlaying = 0;
+                currentlyPlaying = 999;
+
                 firstObject.onDrawFrame(mMVPMatrix);
             } else {
-                if(currentlyPlayingAnimation.isIndeterminate()) {
+               /* if(currentlyPlayingAnimation.isIndeterminate()) {
                     firstObject.resetVertexBufferTD();
                     currentlyPlayingAnimation.resetAnimation();
                     currentlyPlayingAnimation = null;
                     currentlyPlaying = 0;
                     firstObject.onDrawFrame(mMVPMatrix);
-                }else{
-                    animate(mMVPMatrix);
-                }
+                }else{*/
+                //if(currentlyPlayingAnimation!=null) {
+                firstObject.setVertexBuffer(currentlyPlayingAnimation.getNextFrame());
+                // }
+                firstObject.onDrawFrame(mMVPMatrix);
+                // animate(mMVPMatrix);
+                //}
+            }
+        }else{
+            firstObject.onDrawFrame(mMVPMatrix);
+        }
+
+    }
+
+    public void onDrawFrame(float[] mMVPMatrix){
+        //gravity
+        firstObject.updateLocation(new SimpleVector(super.horizontalAcc,super.verticalAcc,0f));
+
+        if (currentlyPlayingAnimation != null) {
+            if (currentlyPlayingAnimation.isFinished()) {
+                firstObject.resetVertexBufferTD();
+                currentlyPlayingAnimation.resetAnimation();
+                currentlyPlayingAnimation = null;
+                currentlyPlaying =999;
+                firstObject.onDrawFrame(mMVPMatrix);
+            } else {
+               /* if(currentlyPlayingAnimation.isIndeterminate()) {
+                    firstObject.resetVertexBufferTD();
+                    currentlyPlayingAnimation.resetAnimation();
+                    currentlyPlayingAnimation = null;
+                    currentlyPlaying = 0;
+                    firstObject.onDrawFrame(mMVPMatrix);
+                }else{*/
+                    //if(currentlyPlayingAnimation!=null) {
+                    firstObject.setVertexBuffer(currentlyPlayingAnimation.getNextFrame());
+                   // }
+                    firstObject.onDrawFrame(mMVPMatrix);
+                    // animate(mMVPMatrix);
+                //}
             }
         }else{
             firstObject.onDrawFrame(mMVPMatrix);
@@ -120,8 +201,36 @@ public class AnimatedObject extends SceneObject{
         return firstObject;
     }
 
-    public void rotateX(float x){firstObject.rotateX(x);}
-    public void rotateY(float x){firstObject.rotateY(x);}
-    public void rotateZ(float x){firstObject.rotateZ(x);}
+    public void rotateX(float x){
+        /*ArrayList<Object3D> a = (ArrayList<Object3D>)poses.values();
+        for(Object3D o : a){
+            o.rotateX(x);
+        }*/
+        firstObject.rotateX(x);
+    }
+
+    public void rotateY(float x){
+        /*ArrayList<Object3D> a = (ArrayList<Object3D>)poses.values();
+        for(Object3D o : a){
+            o.rotateY(x);
+        }*/
+        firstObject.rotateY(x);
+    }
+
+    public void rotateZ(float x){
+        /*ArrayList<Object3D> a = (ArrayList<Object3D>)poses.values();
+        for(Object3D o : a){
+            o.rotateZ(x);
+        }*/
+        firstObject.rotateZ(x);
+    }
+
+    public void setLightingSystem(LightingSystem lightingSystem){
+        /*ArrayList<Object3D> a = (ArrayList<Object3D>)poses.values();
+        for(Object3D o : a){
+            o.setLightingSystem(lightingSystem);
+        }*/
+        firstObject.setLightingSystem(lightingSystem);
+    }
 
 }

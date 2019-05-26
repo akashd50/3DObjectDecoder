@@ -74,4 +74,8 @@ public class Person extends SceneObject {
     public  void rotateX(float x){}
     public  void rotateY(float x){}
     public  void rotateZ(float x){}
+
+    public void setLightingSystem(LightingSystem l){
+
+    }
 }

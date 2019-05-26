@@ -1,5 +1,6 @@
 package com.akashapps.a3dobjectdecoder.UI;
 
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.res.AssetManager;
 import android.graphics.Color;
@@ -23,14 +24,19 @@ import com.akashapps.a3dobjectdecoder.objects.BoxCollider;
 import com.akashapps.a3dobjectdecoder.objects.Button;
 import com.akashapps.a3dobjectdecoder.objects.Camera;
 import com.akashapps.a3dobjectdecoder.objects.CustomParticles;
+import com.akashapps.a3dobjectdecoder.objects.Light;
+import com.akashapps.a3dobjectdecoder.objects.LightingSystem;
 import com.akashapps.a3dobjectdecoder.objects.Object3D;
 import com.akashapps.a3dobjectdecoder.objects.ParticleSystem;
 import com.akashapps.a3dobjectdecoder.objects.ParticleSystemV2;
+import com.akashapps.a3dobjectdecoder.objects.Pose;
 import com.akashapps.a3dobjectdecoder.objects.Scene;
 import com.akashapps.a3dobjectdecoder.logic.TouchController;
 import com.akashapps.a3dobjectdecoder.objects.DPad;
 import com.akashapps.a3dobjectdecoder.objects.SceneObject;
 import com.akashapps.a3dobjectdecoder.objects.SimpleVector;
+import com.akashapps.a3dobjectdecoder.objects.Texture;
+import com.akashapps.a3dobjectdecoder.objects.TexturedPlane;
 
 import java.io.IOException;
 
@@ -54,7 +60,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
     private static int FPS=0;
     private static long currentFrameTime, previousFrameTime;
     private DPad dPad;
-    private Button punchButton;
+    private Button punchButton, jumpButton, shootButton;
 
     private Scene firstScene;
     private Camera camera;
@@ -65,19 +71,37 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
     private BoxCollisionListener listener;
     private CollisionHandler characterGround;
     private SceneControlHandler sceneControlHandler;
-    private boolean isReady;
+    private boolean isReady, startDrawing;
+
     private AnimatedObject mainCharacter;
-    private Animation sample, punch;
-    private ParticleSystemV2 particleSystem;
+    private Pose gunFront/*, gunBack*/, jumpPose;
+    private Animation punch, gunWalkBack, gunWalkFront, walk, jumpAnim;
+
+    private ParticleSystemV2 particleSystem, gunSparks;
     private int particle_red = 0;
     private int particle_green = 0;
     private int particle_blue = 0;
+    //private float[] lights, Lightcolors;
+    private TexturedPlane loadingTitle, loadingCircle;
+    private Thread backgroundThread;
+    private int program, refProgram, ptLightProgram;
+    private Texture rickuii,blockT,nightSky,woodT,rickCNew;
+    private Light movingLight;
+    private LightingSystem lightingSystem;
+    private SimpleVector bulletLoc;
+
+    private int gunShotSparks;
+
+    private double jumpStartTime;
+
     public MainGameRenderer(Context ctx, TouchController controller) {
         this.context = ctx;
         this.controller = controller;
         currentFrameTime = 0;
         isReady = false;
         previousFrameTime = 0;
+        gunShotSparks=0;
+        jumpStartTime = 0;
     }
 
 
@@ -98,51 +122,95 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         //Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 3, 10);
         Matrix.orthoM(uiProjectionMatrix, 0, -ratio, ratio, -1, 1, 1, 10);
         //Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 1, 10);
-       // GLES20.glDepthMask( true );
         GLES20.glEnable( GLES20.GL_DEPTH_TEST );
         GLES20.glDepthFunc( GLES20.GL_LESS);
-
-        //GLES20.glEnable( GLES20.GL_BLEND);
-        //GLES20.glBlendFunc( GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA );
-
         GLES20.glEnable(GLES20.GL_CULL_FACE);
-        //GLES20.glCullFace(GLES20.GL_FRONT_FACE);
 
+        program = Shader.generateShadersAndProgram(Shader.O3DVERTEXSHADER, Shader.O3DFRAGMENTSHADER);
+        refProgram = Shader.generateShadersAndProgram(Shader.REFLECTVERTEXSHADER, Shader.REFLECTFRAGMENTSHADER);
+        ptLightProgram = Shader.getPointLightProgram(5);
+
+        particleSystem = new ParticleSystemV2(240*4);
+        particleSystem.setBlendType(ParticleSystemV2.LIGHT_BLEND);
+        particleSystem.setPointerSize(30f);
+        particleSystem.setTimeOnScreen(4f);
+        particleSystem.generateShadersAndProgram();
+        particleSystem.loadTexture(context, R.drawable.q_particle_v);
+
+        gunSparks= new ParticleSystemV2(180);
+        gunSparks.setBlendType(ParticleSystemV2.LIGHT_BLEND);
+        gunSparks.setPointerSize(10f);
+        gunSparks.setTimeOnScreen(3f);
+        gunSparks.generateShadersAndProgram();
+        gunSparks.loadTexture(context, R.drawable.q_particle_v);
+
+        bulletLoc = new SimpleVector(0f,0f,0f);
+
+        rickuii = new Texture("multi", context, R.drawable.rickuii);
+        blockT = new Texture("block", context, R.drawable.side_block);
+        nightSky = new Texture("nsky", context, R.drawable.night_sky_ii);
+        woodT = new Texture("woodT", context, R.drawable.wood_t);
+        rickCNew = new Texture("ricku", context, R.drawable.rick_char);
+
+        loadingTitle = new TexturedPlane(0.5f,0.5f, context, R.drawable.loading_title);
+        loadingCircle = new TexturedPlane(0.7f,0.7f, context, R.drawable.loading_circle);
+
+        loadingTitle.setOpacity(1.0f);
+        loadingCircle.setOpacity(1.0f);
+
+        isReady = false;
+        startDrawing = false;
         initializeUIElements();
-        initializeGameObjects();
-
+        /*backgroundThread = new Thread(new Runnable() {
+            @Override
+            public void run() {*/
+                initializeGameObjects();
+                isReady = true;
+  /*          }
+        });
+        backgroundThread.start();
+*/
         camera.setMatrices(new float[16],mProjectionMatrix,new float[16]);
         camera.setPosition(new SimpleVector(0f,2f,5f));
         camera.lookAt(new SimpleVector(0f,0f,0f));
         camera.setFollowSpeed(new SimpleVector(0.04f,0f,0f));
         camera.setFollowDelay(new SimpleVector(1.5f,0f,0f));
-        isReady = true;
     }
 
     private void initializeUIElements(){
         dPad = new DPad(new SimpleVector(-1.3f,-0.6f,0f),0.4f,context);
-        punchButton = new Button(R.mipmap.punch_ic_ii, new SimpleVector(0.2f,0.2f,0f),context);
-        punchButton.setLocation(new SimpleVector(1.6f,-0.6f,0f));
+
+        punchButton = new Button(R.drawable.punch_icon_new, new SimpleVector(0.3f,0.3f,0f),context);
+        punchButton.setLocation(new SimpleVector(1.4f,-0.7f,0f));
+
+        jumpButton = new Button(R.drawable.jump_icon, new SimpleVector(0.3f,0.3f,0f),context);
+        jumpButton.setLocation(new SimpleVector(1.4f,-0.3f,0f));
+
+        shootButton = new Button(R.drawable.shoot_icon, new SimpleVector(0.3f,0.3f,0f),context);
+        shootButton.setLocation(new SimpleVector(1.0f,-0.7f,0f));
+
         textDecoder = new TextDecoder(context);
         sceneControlHandler = new SceneControlHandler();
         sceneControlHandler.addController(dPad);
         sceneControlHandler.addController(punchButton);
+        sceneControlHandler.addController(jumpButton);
+        sceneControlHandler.addController(shootButton);
     }
 
     private void initializeGameObjects(){
         firstScene = new Scene();
         firstScene.setCamera(camera);
 
+
         characterGround = new CollisionHandler();
         listener = new BoxCollisionListener(characterGround);
-        int program = Shader.generateShadersAndProgram(Shader.O3DVERTEXSHADER, Shader.O3DFRAGMENTSHADER);
-        int refProgram = Shader.generateShadersAndProgram(Shader.REFLECTVERTEXSHADER, Shader.REFLECTFRAGMENTSHADER);
-        int ptLightProgram = Shader.getPointLightProgram(5);
+
+        initializeLighting();
+
         float tx = START_X;
-        SimpleVector lightDirRight = new SimpleVector(-0.5f,0.5f,1f);
 
         for(int i = 0;i<20;i++) {
-            Object3D block = new Object3D(R.raw.sidewalk_block, R.drawable.side_block, context);
+            Object3D block = new Object3D(R.raw.sidewalk_block_ii, R.drawable.side_block, context);
             block.setCollider(new BoxCollider());
 
             block.setLength(2f);
@@ -151,7 +219,9 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             block.setLocation(new SimpleVector(tx, START_Y, 0f));
             block.setRenderProgram(ptLightProgram, Shader.METHOD_3);
             block.setTextureOpacity(1f);
-            block.setShininess(0.5f);
+            block.setShininess(0.1f);
+
+            block.setTextureUnit(rickuii);
 
             listener.addCollisionObjects(block);
             tx+=2f;
@@ -160,22 +230,18 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
 
         Object3D house = new Object3D(R.raw.house_base,R.drawable.rickuii, context);
         Object3D houseGlass = new Object3D(R.raw.house_glass_mettalic,R.drawable.rickuii, context);
-        /*house.setLength(10f);
-        house.setHeight(8f);
-        house.setBredth(6f);
-        houseGlass.setLength(10f);
-        houseGlass.setHeight(7f);
-        houseGlass.setBredth(5f);
-*/
-        house.setLocation(new SimpleVector(START_X+7f,START_Y,START_Z-4f-5f));
+        house.setTextureUnit(rickuii);
+        houseGlass.setTextureUnit(rickuii);
+
+        house.setLocation(new SimpleVector(START_X+10f,START_Y,START_Z-4f-5f));
         house.setRenderProgram(ptLightProgram, Shader.METHOD_3);
         house.setTextureOpacity(1f);
-        house.setShininess(2f);
+        house.setShininess(0.1f);
 
-        houseGlass.setLocation(new SimpleVector(START_X+7f,START_Y,START_Z-4f-5f));
+        houseGlass.setLocation(new SimpleVector(START_X+10f,START_Y,START_Z-4f-5f));
         houseGlass.setRenderProgram(ptLightProgram, Shader.METHOD_3);
         houseGlass.setTextureOpacity(1f);
-        houseGlass.setShininess(5f);
+        houseGlass.setShininess(1f);
 
         firstScene.addSceneObject(house);
         firstScene.addSceneObject(houseGlass);
@@ -188,6 +254,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         skybox.setRenderProgram(refProgram, Shader.METHOD_2);
         skybox.setTextureOpacity(1f);
         skybox.setShininess(0f);
+        skybox.setTextureUnit(nightSky);
 
         firstScene.addSceneObject(skybox);
 
@@ -200,7 +267,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             ground.setRenderProgram(ptLightProgram, Shader.METHOD_3);
             ground.setTextureOpacity(1f);
             ground.setShininess(0.5f);
-
+            ground.setTextureUnit(rickuii);
             firstScene.addSceneObject(ground);
             tx+=10f;
         }
@@ -211,35 +278,19 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             pole.setLength(1f);
             pole.setBredth(3f);
             pole.setHeight(8f);
+
+            pole.setTextureUnit(rickuii);
+
             pole.setLocation(new SimpleVector(tx,START_Y,-3f));
             pole.setRenderProgram(ptLightProgram, Shader.METHOD_3);
             pole.setTextureOpacity(1f);
-            pole.setShininess(0.5f);
+            pole.setShininess(20f);
 
             firstScene.addSceneObject(pole);
             tx+=8f;
         }
 
-        float h = 7.5f;
-        float z = 0f;
-        float x = 8f;
-        float[] lights =
-                {1*x,h,z,1f,
-                2*x,h,z,1f,
-                3*x,h,z,1f,
 
-                7f-5f,2f,-5f,1f,
-                7f+5f,2f,-5f,1f};
-
-        float[] colors =
-                {0.2f,0.3f,0.9f,
-                0f,1f,0f,
-                0f,0f,1f,
-                1f,0.3f,0.02f,
-                1f,0.3f,0.02f};
-
-        Object3D.setPointLightPositions(lights);
-        Object3D.setPointLightColors(colors);
 
         tx = START_X+15f;
         for(int i=0;i<5;i++) {
@@ -250,7 +301,10 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             tree.setLocation(new SimpleVector(tx,START_Y,-5f));
             tree.setRenderProgram(ptLightProgram, Shader.METHOD_3);
             tree.setTextureOpacity(1f);
-            tree.setShininess(0f);
+            tree.setShininess(0.1f);
+
+            tree.setTextureUnit(rickuii);
+
             firstScene.addSceneObject(tree);
             tx+=10f;
         }
@@ -264,6 +318,9 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             fence.setRenderProgram(ptLightProgram, Shader.METHOD_3);
             fence.setTextureOpacity(1f);
             fence.setShininess(0.5f);
+
+            fence.setTextureUnit(woodT);
+
             firstScene.addSceneObject(fence);
             tx+=10f;
         }
@@ -273,6 +330,9 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             Object3D road = new Object3D(R.raw.road_i, R.drawable.rickuii, context);
             road.setLength(10f);
             road.setBredth(10f);
+
+            road.setTextureUnit(rickuii);
+
             road.setLocation(new SimpleVector(tx, START_Y, 7f));
             road.setRenderProgram(ptLightProgram, Shader.METHOD_3);
             road.setTextureOpacity(1f);
@@ -283,30 +343,88 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         }
 
         AssetManager am = context.getAssets();
-        mainCharacter = new AnimatedObject(R.raw.person_model_i, R.drawable.rickuii,context);
-        skybox.follow(mainCharacter);
-        //mainCharacter.setRenderProgram(ptLightProgram);
-        mainCharacter.getMain().setRenderProgram(ptLightProgram,Shader.METHOD_3);
 
-        sample = mainCharacter.addAnimation(50, true);
+        mainCharacter = new AnimatedObject(R.raw.rick_base_i, R.drawable.rickuii,context);
+        //gunBack = mainCharacter.addPose(R.raw.character_still_with_gun_back);
+        gunFront = mainCharacter.addPose(R.raw.rick_base_i);
+        jumpPose = mainCharacter.addPose(R.raw.rick_in_jump);
+
+        mainCharacter.setActivePose(gunFront.getId());
+
+        skybox.follow(mainCharacter);
+        mainCharacter.getMain().setRenderProgram(ptLightProgram,Shader.METHOD_3);
+        mainCharacter.getMain().setShininess(0.4f);
+
+        /*gunWalkBack = mainCharacter.addAnimation(gunBack.getId(), 49, true);
         try{
-            String path = "anim_walk/";
-            String name = "anim_sample_0000";
+            String path = "anim_walk_w_gun_w_anim/";
+            String name = "anim_walk_with_gun_back_0000";
             String ext = ".obj";
-            for(int i=1;i<=50;i++) {
+            for(int i=1;i<=49;i++) {
                 if(i<10) {
-                    sample.addFrame(am.open(path + name + "0"+i + ext));
+                    gunWalkBack.addFrame(am.open(path + name + "0"+i + ext));
                 }else{
-                    sample.addFrame(am.open(path + name + i + ext));
+                    gunWalkBack.addFrame(am.open(path + name + i + ext));
                 }
             }
         }catch (IOException e){
             e.printStackTrace();
         }
-        punch = mainCharacter.addAnimation(40, false);
+
+        walk = gunWalkBack;*/
+
+        /*gunWalkFront = mainCharacter.addAnimation(gunFront.getId(),49, true);
         try{
-            String path = "anim_punch/";
-            String name = "anim_sample_0000";
+            String path = "anim_walk_w_gun_drawn/";
+            String name = "anim_walk_w_gun_drawn_0000";
+            String ext = ".obj";
+            for(int i=1;i<=49;i++) {
+                if(i<10) {
+                    gunWalkFront.addFrame(am.open(path + name + "0"+i + ext));
+                }else{
+                    gunWalkFront.addFrame(am.open(path + name + i + ext));
+                }
+            }
+        }catch (IOException e){
+            e.printStackTrace();
+        }*/
+        gunWalkFront = mainCharacter.addAnimation(gunFront.getId(),39, true);
+        try{
+            String path = "anim_rick_walking/";
+            String name = "rick_walking_0000";
+            String ext = ".obj";
+            for(int i=10;i<=49;i++) {
+                if(i<10) {
+                    gunWalkFront.addFrame(am.open(path + name + "0"+i + ext));
+                }else{
+                    gunWalkFront.addFrame(am.open(path + name + i + ext));
+                }
+            }
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+        walk = gunWalkFront;
+
+        jumpAnim = mainCharacter.addAnimation(jumpPose.getId(),30, false);
+        try{
+            String path = "anim_rick_jump_start/";
+            String name = "rick_jump_0000";
+            String ext = ".obj";
+            for(int i=1;i<=30;i++) {
+                if(i<10) {
+                    jumpAnim.addFrame(am.open(path + name + "0"+i + ext));
+                }else{
+                    jumpAnim.addFrame(am.open(path + name + i + ext));
+                }
+            }
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+
+       /* punch = mainCharacter.addAnimation(gunBack.getId(),40, false);
+        try{
+            String path = "anim_punch_with_gun_back/";
+            String name = "anim_punch_with_gun_back_0000";
             String ext = ".obj";
             for(int i=1;i<=40;i++) {
                 if(i<10) {
@@ -317,7 +435,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             }
         }catch (IOException e){
             e.printStackTrace();
-        }
+        }*/
 
         mainCharacter.setCollider(new BoxCollider());
         mainCharacter.setVerticalVel(-0.004f);
@@ -327,48 +445,63 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
 
         listener.setMain(mainCharacter);
         listener.startListener();
-        mainCharacter.setLocation(new SimpleVector(START_X+2f,2f,0f));
+        mainCharacter.setLocation(new SimpleVector(START_X+2f,1f,0f));
         mainCharacter.setGravity(true);
         camera.follow(mainCharacter);
 
         firstScene.setSceneLight(new SimpleVector(0.5f,2f,-2f));
         skybox.setMainLight(new SimpleVector(0f,1f,1f));
         mainCharacter.setMainLight(new SimpleVector(0.5f,1f,-1f));
-        //house.setMainLight(lightDirRight);
 
-        particleSystem = new ParticleSystemV2(2000);
-        particleSystem.setBlendType(ParticleSystemV2.LIGHT_BLEND);
-        particleSystem.setPointerSize(30f);
-        particleSystem.setTimeOnScreen(4f);
-        particleSystem.generateShadersAndProgram();
-        particleSystem.loadTexture(context, R.drawable.q_particle_v);
+        firstScene.setLightingSystem(lightingSystem);
 
+        mainCharacter.getMain().setTextureUnit(rickCNew);
+        mainCharacter.setLightingSystem(lightingSystem);
     }
 
     @Override
     public void onDrawFrame(GL10 gl) {
         previousFrameTime = System.nanoTime();
-        GLES20.glClearColor(((float)0/255), (float)0/255, (float)0/255,1f);
+        GLES20.glClearColor(((float)200/255), (float)200/255, (float)200/255,1f);
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
-        GLES20.glClearDepthf(1.0f);
+        //GLES20.glClearDepthf(1.0f);
+        if(isReady) {
+            drawScene();
+            customUIDrawing();
+        }else{
+            drawLoadingDialog();
+        }
+        currentFrameTime = System.nanoTime();
+        long tTime = currentFrameTime - previousFrameTime;
+        FPS = (int)(1000000000/tTime);
+    }
 
+    private void drawScene(){
         camera.updatePinchZoom();
         camera.updateView();
+
+        //updateLights();
+        //movingLight.setLocation(new SimpleVector(mainCharacter.getLocation().x,6f,8f));
+        //Object3D.setPointLightPositions(lights);
+
         Object3D.setViewMatrix(camera.getViewMatrix());
 
         float[] mainMatrix = camera.getMVPMatrix();
 
         firstScene.setEyeLocation(new SimpleVector(-camera.getPosition().x, -camera.getPosition().y, -camera.getPosition().z));
-        firstScene.onDrawFrame(mainMatrix);
+
 
         if(characterGround.isCOLLISION_DETECTED()){
-            mainCharacter.setVerticalVel(0f);
-            mainCharacter.updateHorizontalVel(mainCharacter.DEFAULT_HORIZONTAL_DRAG);
+            mainCharacter.updateHorizontalVel(SceneObject.DEFAULT_HORIZONTAL_DRAG);
             characterGround.resetCOLLISION_DETECTED();
         }
 
         if(!characterGround.isSTILL_COLLIDING()){
-            mainCharacter.updateVerticalVel(mainCharacter.DEFAULT_GRAVITY_UPDATE);
+            mainCharacter.updateVerticalVel(SceneObject.DEFAULT_GRAVITY_UPDATE);
+        }
+
+        if(characterGround.isSTILL_COLLIDING()){
+            mainCharacter.setVerticalVel(0f);
         }
 
         if(dPad.isClicked()){
@@ -387,47 +520,126 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
                     if (rotY < 90) {
                         mainCharacter.getMain().rotateY(10f);
                     }
-                    particleSystem.addParticles(40, Color.rgb(particle_red,particle_green,particle_blue),
+                    particleSystem.addParticles(4, Color.rgb(particle_red,particle_green,particle_blue),
                             new SimpleVector(mainCharacter.getLocation().x,
-                                    mainCharacter.getLocation().y-mainCharacter.getHeight()/5,
+                                    mainCharacter.getLocation().y-mainCharacter.getHeight()/3,
                                     mainCharacter.getLocation().z),
-                            new SimpleVector(0f, 0.1f,0.3f),
-                            new SimpleVector(-0.5f,0.2f,0.0f),
-                            new SimpleVector(1f,1f,0f));
+                            new SimpleVector(0f, 0f,0.05f),
+                            new SimpleVector(-0.5f,0.5f,0.1f),
+                            new SimpleVector(0f,0f,1f));
                 } else {
                     if (rotY > -90) {
                         mainCharacter.getMain().rotateY(-10f);
                     }
-                    particleSystem.addParticles(40, Color.rgb(particle_red,particle_green,particle_blue),
+                    particleSystem.addParticles(4, Color.rgb(particle_red,particle_green,particle_blue),
                             new SimpleVector(mainCharacter.getLocation().x,
-                                    mainCharacter.getLocation().y-mainCharacter.getHeight()/5,
+                                    mainCharacter.getLocation().y-mainCharacter.getHeight()/3,
                                     mainCharacter.getLocation().z),
-                            new SimpleVector(0f, 0.1f,0.3f),
-                            new SimpleVector(0.5f,0.2f,0.0f),
-                            new SimpleVector(1f,1f,0f));
+                            new SimpleVector(0f, 0f,0.05f),
+                            new SimpleVector(0.5f,0.5f,0.1f),
+                            new SimpleVector(0f,0f,1f));
                 }
                 mainCharacter.setHorizontalVel(dPad.activeDpadX*0.25f);
-                mainCharacter.setAnimationTBPlayed(sample.getID());
-
-
-                mainCharacter.animate(mainMatrix);
+                mainCharacter.setAnimationTBP(walk.getID());
+                mainCharacter.setActivePose(gunFront.getId());
+               // mainCharacter.animate(mainMatrix);
             }
         }else if(punchButton.isClicked()){
-            mainCharacter.setAnimationTBPlayed(punch.getID());
-            mainCharacter.animate(mainMatrix);
-        } else{
-            mainCharacter.onDrawFrame(mainMatrix);
+            /*mainCharacter.setActivePose(gunBack.getId());
+            mainCharacter.setAnimationTBP(punch.getID());
+            walk = gunWalkBack;*/
+           // mainCharacter.animate(mainMatrix);
+        }else if(shootButton.isClicked()){
+
+           /* mainCharacter.setActivePose(gunFront.getId());
+
+            walk = gunWalkFront;
+            SimpleVector loc = gunFront.getFront();
+            float distance = loc.z;
+            int d = (int)mainCharacter.getMain().getRotation().y;
+            distance = (float)(distance*Math.cos(d));
+
+            SimpleVector mainCharScale = mainCharacter.getMain().getScale();
+            bulletLoc.x = mainCharacter.getLocation().x + (loc.x * mainCharScale.x);
+            bulletLoc.y = mainCharacter.getLocation().y + (loc.y * mainCharScale.y);
+            bulletLoc.z = mainCharacter.getLocation().z + (loc.z * mainCharScale.z);
+
+          *//*  gunSparks.addParticles(30, Color.rgb(240,130,50),
+                    new SimpleVector(bulletLoc.x, bulletLoc.y,
+                            bulletLoc.z),
+                    new SimpleVector(0f, 0f,0f),
+                    new SimpleVector(1.0f,1.0f,0.5f),
+                    new SimpleVector(0f,1f,1f));*//*
+
+            *//*gunSparks.addParticles(10, Color.rgb(240,130,50),
+                    new SimpleVector(bulletLoc.x, bulletLoc.y,
+                            bulletLoc.z),
+                    new SimpleVector(0f, 0f,0f),
+                    new SimpleVector(1.0f,-1.0f,0.5f),
+                    new SimpleVector(0f,1f,1f));
+*//*            gunShotSparks = 20;*/
+        }else if(jumpButton.isClicked()){
+            mainCharacter.setAnimationTBP(jumpAnim.getID());
+            mainCharacter.setActivePose(jumpPose.getId());
+            jumpStartTime = System.nanoTime();
         }
 
+        if(jumpStartTime!=0){
+            if(jumpAnim.isFinished()){
+                //if((System.nanoTime() - jumpStartTime)/1000000000 < 9) {
+                  /*  mainCharacter.getMain().setLocation(new SimpleVector(mainCharacter.getLocation().x,
+                            mainCharacter.getLocation().y+0.2f,
+                            mainCharacter.getLocation().z));*/
+                    mainCharacter.setVerticalVel(0.05f);
+                    mainCharacter.setHorizontalVel(0.05f);
+                    jumpStartTime=0;
+                //}
+            }
+        }
 
+        firstScene.onDrawFrame(mainMatrix);
+       /* if(gunShotSparks!=0){
+            gunSparks.addParticles(2, Color.rgb(240,130,50),
+                    new SimpleVector(bulletLoc.x, bulletLoc.y,
+                            bulletLoc.z),
+                    new SimpleVector(0f, 0f,0f),
+                    new SimpleVector(1.0f,1.0f,0.5f),
+                    new SimpleVector(0f,0f,1f));
+
+            gunSparks.addParticles(2, Color.rgb(240,130,50),
+                    new SimpleVector(bulletLoc.x, bulletLoc.y,
+                            bulletLoc.z),
+                    new SimpleVector(0f, 0f,0f),
+                    new SimpleVector(1.0f,-1.0f,0.5f),
+                    new SimpleVector(0f,0f,1f));
+
+            gunShotSparks--;
+        }*/
+
+
+
+       /* if(bulletLoc.x<20f){
+            bulletLoc.x += 0.05f;
+            gunSparks.addParticles(2, Color.rgb(240,130,50),
+                    new SimpleVector(bulletLoc.x, bulletLoc.y,
+                            bulletLoc.z),
+                    new SimpleVector(0f, 0f,0f),
+                    new SimpleVector(-1.0f,1.0f,0.5f),
+                    new SimpleVector(0f,1f,1f));
+            bulletLoc.x+=0.05;
+            gunSparks.addParticles(2, Color.rgb(240,130,50),
+                    new SimpleVector(bulletLoc.x, bulletLoc.y,
+                            bulletLoc.z),
+                    new SimpleVector(0f, 0f,0f),
+                    new SimpleVector(-1.0f,1.0f,0.5f),
+                    new SimpleVector(0f,1f,1f));
+        }*/
+
+        mainCharacter.onDrawFrame2(mainMatrix);
         glDepthMask(false);
         particleSystem.onDrawFrame(mainMatrix);
+        //gunSparks.onDrawFrame(mainMatrix);
         glDepthMask(true);
-        customUIDrawing();
-
-        currentFrameTime = System.nanoTime();
-        long tTime = currentFrameTime - previousFrameTime;
-        FPS = (int)(1000000000/tTime);
     }
 
 
@@ -440,6 +652,18 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         float[] color = {1.0f,1.0f,0f,1f};
         textDecoder.drawText("FPS: "+FPS,new SimpleVector(-1.0f,0.8f,2f),new SimpleVector(1.0f,1.0f,1f),uiMVPMatrix, color);
         sceneControlHandler.onDrawFrame(uiMVPMatrix);
+    }
+
+    private void drawLoadingDialog(){
+        Matrix.setLookAtM(uiViewMatrix, 0, 0, 0, 5.0f,
+                0.0f, 0.0f, 0.0f,
+                0f, 1.0f, 0.0f);
+        Matrix.multiplyMM(uiMVPMatrix, 0, uiProjectionMatrix, 0, uiViewMatrix, 0);
+
+        loadingCircle.rotateZ(-1f);
+        loadingCircle.draw(uiMVPMatrix);
+        loadingTitle.draw(uiMVPMatrix);
+
     }
 
     public void onStop(){
@@ -461,6 +685,70 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
 
     public void onTouchMove(MotionEvent event){
         sceneControlHandler.onTouchMove(event.getX(), event.getY());
+    }
+
+    public void updateLights(){
+        //lights[22] = camera.getPosition().z;
+       // lights[20] = mainCharacter.getLocation().x;
+    }
+
+    private void initializeLighting(){
+        lightingSystem = new LightingSystem();
+
+        float h = 7.5f;
+        float z = 4f;
+        float x = 8f;
+
+        Light l = new Light(new SimpleVector(1*x,h,z),new SimpleVector(0.1f,0.1f,1.0f),
+                new SimpleVector(0.0f,0.0f,0.1f), new SimpleVector(0f,0f,0f));
+        l.setIntensity(4f);
+        lightingSystem.addLight(l);
+
+        l = new Light(new SimpleVector(2*x,h,z),new SimpleVector(0f,1f,0f),
+                new SimpleVector(0.0f,0.15f,0.0f), new SimpleVector(0f,0f,0f));
+        l.setIntensity(4f);
+        lightingSystem.addLight(l);
+
+        l = new Light(new SimpleVector(3*x,h,z),new SimpleVector(0f,0f,1f),
+                new SimpleVector(0.0f,0.0f,0.2f), new SimpleVector(0f,0f,0f));
+        l.setIntensity(4f);
+        lightingSystem.addLight(l);
+
+        l=new Light(new SimpleVector(10f-4.5f,2f,-6.3f),new SimpleVector(1f,0.3f,0.02f),
+                new SimpleVector(0.1f,0.0f,0.0f), new SimpleVector(0f,0f,0f));
+        l.setIntensity(5f);
+        lightingSystem.addLight(l);
+
+        l = new Light(new SimpleVector(10f+4.5f,2f,-6.3f),new SimpleVector(1f,0.3f,0.02f),
+                new SimpleVector(0.1f,0.0f,0.0f), new SimpleVector(0f,0f,0f));
+        l.setIntensity(5f);
+        lightingSystem.addLight(l);
+
+        movingLight = new Light(new SimpleVector(0f,3f,8f),new SimpleVector(1f,1f,1f),
+                new SimpleVector(0.0f,0.0f,0.2f), new SimpleVector(0f,0f,0f));
+        //lightingSystem.addLight(movingLight);
+
+/*
+        float[] lights =
+                {1*x,h,z,1f,
+                2*x,h,z,1f,
+                3*x,h,z,1f,
+                10f-4.5f,2f,-6.3f,1f,
+                10f+4.5f,2f,-6.3f,1f,
+                0f,2f,0f,1f};
+        this.lights = lights;
+        float[] colors =
+                {0.1f,0.1f,1.0f,
+                0f,1f,0f,
+                0f,0f,1f,
+                1f,0.3f,0.02f,
+                1f,0.3f,0.02f,
+                1f,1f,1f};*/
+
+        //this.Lightcolors = colors;
+
+       /* Object3D.setPointLightPositions(lights);
+        Object3D.setPointLightColors(colors);*/
     }
 
 

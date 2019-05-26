@@ -43,6 +43,7 @@ public class TexturedPlane {
     //private Square backgroundSq;
     //public float[] light, lightLoc;
     private boolean isLighting;
+    private float opacity;
 
     private String TPVERTEXSHADER =
             "uniform mat4 u_Matrix;" +
@@ -59,9 +60,10 @@ public class TexturedPlane {
                 "precision mediump float;" +
                 "uniform sampler2D u_TextureUnit;" +
                 "varying vec2 v_TextureCoordinates;" +
+                "uniform float opacity;"+
                 "void main()" +
                 "{" +
-                    "gl_FragColor = texture2D(u_TextureUnit, v_TextureCoordinates);" +
+                    "gl_FragColor = opacity * texture2D(u_TextureUnit, v_TextureCoordinates);" +
                 "}";
 
     public TexturedPlane(float l, float h, Context ctx, int resID) {
@@ -342,25 +344,15 @@ public class TexturedPlane {
         mMVPMatrixHandle = GLES20.glGetUniformLocation(mProgram, "u_Matrix");
         // Pass the projection and view transformation to the shader
         GLES20.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, mMVPMatrix, 0);
-       /* if(isLighting) {
-            int lightHandle = GLES20.glGetUniformLocation(mProgram, "a_light");
-            GLES20.glUniform4f(lightHandle, light[0], light[1], light[2], light[3]);
 
-            int lightLoc = GLES20.glGetUniformLocation(mProgram, "a_lightLocation");
-            GLES20.glUniform3f(lightLoc, this.lightLoc[0], this.lightLoc[1], this.lightLoc[2]);
-        }*/
-        // Enable a handle to the triangle vertices
-        // get handle to vertex shader's vPosition member
         textureUniform = GLES20.glGetUniformLocation(mProgram,"u_TextureUnit");
-        // Set the active texture unit to texture unit 0.
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-        // Bind the texture to this unit.
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures[0]);
-        // Tell the texture uniform sampler to use this texture in the shader by
-        // telling it to read from texture unit 0.
         GLES20.glUniform1i(textureUniform, 0);
-        // Prepare the triangle coordinate datav
-        //vertexBuffer.position(0);
+
+        int opu = GLES20.glGetUniformLocation(mProgram, "opacity");
+        GLES20.glUniform1f(opu, opacity);
+
         mPositionHandle = GLES20.glGetAttribLocation(mProgram, "a_Position");
         GLES20.glVertexAttribPointer(mPositionHandle, COORDS_PER_VERTEX,
                 GLES20.GL_FLOAT, false,
@@ -481,6 +473,14 @@ public class TexturedPlane {
             angle = angle - temp;
             rotateZ = angle;
         }
+    }
+
+    public float getOpacity() {
+        return opacity;
+    }
+
+    public void setOpacity(float opacity) {
+        this.opacity = opacity;
     }
 
     public void resetRotation(){
