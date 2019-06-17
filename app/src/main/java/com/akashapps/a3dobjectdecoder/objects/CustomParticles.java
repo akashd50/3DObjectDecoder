@@ -4,24 +4,22 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
-import android.opengl.GLES20;
-import android.opengl.GLES32;
+import android.opengl.GLES30;
 import android.opengl.GLUtils;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 
-import static android.opengl.GLES20.GL_BLEND;
-import static android.opengl.GLES20.GL_ONE;
-import static android.opengl.GLES20.GL_ONE_MINUS_SRC_ALPHA;
-import static android.opengl.GLES20.GL_POINTS;
-import static android.opengl.GLES20.GL_SRC_ALPHA;
+import static android.opengl.GLES30.GL_BLEND;
+import static android.opengl.GLES30.GL_ONE;
+import static android.opengl.GLES30.GL_ONE_MINUS_SRC_ALPHA;
+import static android.opengl.GLES30.GL_SRC_ALPHA;
 
 public class CustomParticles {
 
     public float initialVelX, initialVelY;
     public float tempVelX, tempVelY, tempX, tempY;
-    public TexturedPlane particle, tail;
+    public Quad2D particle, tail;
     private static Context context;
     public int lifetime;
     int timeCounter;
@@ -203,15 +201,15 @@ public class CustomParticles {
 
         generateProgram();
 
-        uMatrixLocation = GLES20.glGetUniformLocation(mProgram, "u_Matrix");
-        uTimeLocation = GLES20.glGetUniformLocation(mProgram, "u_Time");
+        uMatrixLocation = GLES30.glGetUniformLocation(mProgram, "u_Matrix");
+        uTimeLocation = GLES30.glGetUniformLocation(mProgram, "u_Time");
 
-        aPositionLocation = GLES20.glGetAttribLocation(mProgram, "a_Position");
-        aColorLocation = GLES20.glGetAttribLocation(mProgram, "a_Color");
-        aDirectionVectorLocation = GLES20.glGetAttribLocation(mProgram, "a_DirectionVector");
-        aParticleStartTimeLocation = GLES20.glGetAttribLocation(mProgram, "a_ParticleStartTime");
+        aPositionLocation = GLES30.glGetAttribLocation(mProgram, "a_Position");
+        aColorLocation = GLES30.glGetAttribLocation(mProgram, "a_Color");
+        aDirectionVectorLocation = GLES30.glGetAttribLocation(mProgram, "a_DirectionVector");
+        aParticleStartTimeLocation = GLES30.glGetAttribLocation(mProgram, "a_ParticleStartTime");
         if(resID!=0) {
-            uTextureLocation = GLES20.glGetUniformLocation(mProgram, "u_TextureUnit");
+            uTextureLocation = GLES30.glGetUniformLocation(mProgram, "u_TextureUnit");
             texture = loadTexture(c, resID);
         }
 
@@ -322,15 +320,15 @@ public class CustomParticles {
 
         generateProgram();
 
-        uMatrixLocation = GLES20.glGetUniformLocation(mProgram, "u_Matrix");
-        uTimeLocation = GLES20.glGetUniformLocation(mProgram, "u_Time");
+        uMatrixLocation = GLES30.glGetUniformLocation(mProgram, "u_Matrix");
+        uTimeLocation = GLES30.glGetUniformLocation(mProgram, "u_Time");
 
-        aPositionLocation = GLES20.glGetAttribLocation(mProgram, "a_Position");
-        aColorLocation = GLES20.glGetAttribLocation(mProgram, "a_Color");
-        aDirectionVectorLocation = GLES20.glGetAttribLocation(mProgram, "a_DirectionVector");
-        aParticleStartTimeLocation = GLES20.glGetAttribLocation(mProgram, "a_ParticleStartTime");
+        aPositionLocation = GLES30.glGetAttribLocation(mProgram, "a_Position");
+        aColorLocation = GLES30.glGetAttribLocation(mProgram, "a_Color");
+        aDirectionVectorLocation = GLES30.glGetAttribLocation(mProgram, "a_DirectionVector");
+        aParticleStartTimeLocation = GLES30.glGetAttribLocation(mProgram, "a_ParticleStartTime");
         if(resID!=0) {
-            uTextureLocation = GLES20.glGetUniformLocation(mProgram, "u_TextureUnit");
+            uTextureLocation = GLES30.glGetUniformLocation(mProgram, "u_TextureUnit");
             texture = loadTexture(c, resID);
         }
 
@@ -404,200 +402,200 @@ public class CustomParticles {
     }
 
     public void setUniforms(float[] mMVPMatrix, float elapsedTime){
-        uMatrixLocation = GLES20.glGetUniformLocation(mProgram, "u_Matrix");
-        uTimeLocation = GLES20.glGetUniformLocation(mProgram, "u_Time");
+        uMatrixLocation = GLES30.glGetUniformLocation(mProgram, "u_Matrix");
+        uTimeLocation = GLES30.glGetUniformLocation(mProgram, "u_Time");
 
-        GLES20.glUniformMatrix4fv(uMatrixLocation, 1, false, mMVPMatrix,0);
-        GLES20.glUniform1f(uTimeLocation,elapsedTime);
+        GLES30.glUniformMatrix4fv(uMatrixLocation, 1, false, mMVPMatrix,0);
+        GLES30.glUniform1f(uTimeLocation,elapsedTime);
     }
 
     private void generateProgram() {
         // if(mProgram==0) {
-        int vertexShad = loadShader(GLES20.GL_VERTEX_SHADER,
+        int vertexShad = loadShader(GLES30.GL_VERTEX_SHADER,
                 PVTXSHADER);
-        int fragmentShad = loadShader(GLES20.GL_FRAGMENT_SHADER,
+        int fragmentShad = loadShader(GLES30.GL_FRAGMENT_SHADER,
                 PFRAGSHADER);
 
         // create empty OpenGL ES Program
-        mProgram = GLES20.glCreateProgram();
+        mProgram = GLES30.glCreateProgram();
 
         // add the vertex shader to program
-        GLES20.glAttachShader(mProgram, vertexShad);
+        GLES30.glAttachShader(mProgram, vertexShad);
 
         // add the fragment shader to program
-        GLES20.glAttachShader(mProgram, fragmentShad);
+        GLES30.glAttachShader(mProgram, fragmentShad);
 
         // creates OpenGL ES program executables
-        GLES20.glLinkProgram(mProgram);
+        GLES30.glLinkProgram(mProgram);
         // }
     }
 
     public void onDrawFrame(float[] mMVPMatrix, float elapsedTime, float alpha){
         timeCurrent = System.nanoTime();
         if((timeCurrent - lastParticleAdded)/1000000000 < this.timeOnScreen && lastParticleAdded!=0) {
-            GLES20.glUseProgram(mProgram);
+            GLES30.glUseProgram(mProgram);
             //int dataOffset = 0;
 
-            uMatrixLocation = GLES20.glGetUniformLocation(mProgram, "u_Matrix");
-            GLES20.glUniformMatrix4fv(uMatrixLocation, 1, false, mMVPMatrix, 0);
-            uTimeLocation = GLES20.glGetUniformLocation(mProgram, "u_Time");
-            GLES20.glUniform1f(uTimeLocation, elapsedTime);
+            uMatrixLocation = GLES30.glGetUniformLocation(mProgram, "u_Matrix");
+            GLES30.glUniformMatrix4fv(uMatrixLocation, 1, false, mMVPMatrix, 0);
+            uTimeLocation = GLES30.glGetUniformLocation(mProgram, "u_Time");
+            GLES30.glUniform1f(uTimeLocation, elapsedTime);
 
             if (resID != 0) {
-                uTextureLocation = GLES20.glGetUniformLocation(mProgram, "u_TextureUnit");
-                GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-                GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texture);
-                GLES20.glUniform1i(uTextureLocation, 0);
+                uTextureLocation = GLES30.glGetUniformLocation(mProgram, "u_TextureUnit");
+                GLES30.glActiveTexture(GLES30.GL_TEXTURE0);
+                GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, texture);
+                GLES30.glUniform1i(uTextureLocation, 0);
 
-                int pointerAlpha = GLES20.glGetUniformLocation(mProgram, "u_PointerAlpha");
-                GLES20.glUniform1f(pointerAlpha, alpha);
+                int pointerAlpha = GLES30.glGetUniformLocation(mProgram, "u_PointerAlpha");
+                GLES30.glUniform1f(pointerAlpha, alpha);
 
-                GLES20.glEnable(GLES20.GL_POINTS);
-                //int pt = GLES20.glGetAttribLocation(mProgram, "gl_PointSize");
+                GLES30.glEnable(GLES30.GL_POINTS);
+                //int pt = GLES30.glGetAttribLocation(mProgram, "gl_PointSize");
 
-                //GLES20.glEnable(GL_POINTS);
+                //GLES30.glEnable(GL_POINTS);
             }
-            aPositionLocation = GLES20.glGetAttribLocation(mProgram, "a_Position");
-            aColorLocation = GLES20.glGetAttribLocation(mProgram, "a_Color");
-            aDirectionVectorLocation = GLES20.glGetAttribLocation(mProgram, "a_DirectionVector");
-            aParticleStartTimeLocation = GLES20.glGetAttribLocation(mProgram, "a_ParticleStartTime");
+            aPositionLocation = GLES30.glGetAttribLocation(mProgram, "a_Position");
+            aColorLocation = GLES30.glGetAttribLocation(mProgram, "a_Color");
+            aDirectionVectorLocation = GLES30.glGetAttribLocation(mProgram, "a_DirectionVector");
+            aParticleStartTimeLocation = GLES30.glGetAttribLocation(mProgram, "a_ParticleStartTime");
 
 
             vertexBuffer.position(0);
             // this.setUniforms(mMVPMatrix, 10); // change time
-            GLES20.glVertexAttribPointer(aPositionLocation, POSITION_COMPONENT_COUNT,
-                    GLES20.GL_FLOAT, false,
+            GLES30.glVertexAttribPointer(aPositionLocation, POSITION_COMPONENT_COUNT,
+                    GLES30.GL_FLOAT, false,
                     POSITION_COMPONENT_COUNT * BYTES_PER_FLOAT, vertexBuffer);
-            GLES20.glEnableVertexAttribArray(aPositionLocation);
+            GLES30.glEnableVertexAttribArray(aPositionLocation);
 
             //vertexBuffer.position(0);
             //dataOffset+=POSITION_COMPONENT_COUNT;
             colorBuffer.position(0);
             //vertexBuffer.position(dataOffset);
-            GLES20.glVertexAttribPointer(aColorLocation, COLOR_COMPONENT_COUNT,
-                    GLES20.GL_FLOAT, false,
+            GLES30.glVertexAttribPointer(aColorLocation, COLOR_COMPONENT_COUNT,
+                    GLES30.GL_FLOAT, false,
                     COLOR_COMPONENT_COUNT * BYTES_PER_FLOAT, colorBuffer);
             //dataOffset+=COLOR_COMPONENT_COUNT;
-            GLES20.glEnableVertexAttribArray(aColorLocation);
+            GLES30.glEnableVertexAttribArray(aColorLocation);
 
             vectorBuffer.position(0);
             //vertexBuffer.position(dataOffset);
-            GLES20.glVertexAttribPointer(aDirectionVectorLocation, VECTOR_COMPONENT_COUNT,
-                    GLES20.GL_FLOAT, false,
+            GLES30.glVertexAttribPointer(aDirectionVectorLocation, VECTOR_COMPONENT_COUNT,
+                    GLES30.GL_FLOAT, false,
                     VECTOR_COMPONENT_COUNT * BYTES_PER_FLOAT, vectorBuffer);
 
             // dataOffset+=VECTOR_COMPONENT_COUNT;
-            GLES20.glEnableVertexAttribArray(aDirectionVectorLocation);
+            GLES30.glEnableVertexAttribArray(aDirectionVectorLocation);
 
             timeBuffer.position(0);
             //vertexBuffer.position(dataOffset);
-            GLES20.glVertexAttribPointer(aParticleStartTimeLocation, PARTICLE_START_TIME_COMPONENT_COUNT,
-                    GLES20.GL_FLOAT, false,
+            GLES30.glVertexAttribPointer(aParticleStartTimeLocation, PARTICLE_START_TIME_COMPONENT_COUNT,
+                    GLES30.GL_FLOAT, false,
                     PARTICLE_START_TIME_COMPONENT_COUNT * BYTES_PER_FLOAT, timeBuffer);
-            GLES20.glEnableVertexAttribArray(aParticleStartTimeLocation);
+            GLES30.glEnableVertexAttribArray(aParticleStartTimeLocation);
 
             //.position(0);
 
-            GLES20.glEnable(GL_BLEND);
+            GLES30.glEnable(GL_BLEND);
             if (BLEND_TYPE == VN_BLEND) {
-                GLES20.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                GLES30.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             } else if (BLEND_TYPE == LIGHT_BLEND) {
-                GLES20.glBlendFunc(GL_ONE, GL_ONE);
+                GLES30.glBlendFunc(GL_ONE, GL_ONE);
             } else {
-                GLES20.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                GLES30.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             }
 
-            GLES20.glDrawArrays(GLES20.GL_POINTS, 0, currentParticleCount);
+            GLES30.glDrawArrays(GLES30.GL_POINTS, 0, currentParticleCount);
 
-            GLES20.glDisableVertexAttribArray(aPositionLocation);
-            GLES20.glDisableVertexAttribArray(aDirectionVectorLocation);
-            GLES20.glDisableVertexAttribArray(aColorLocation);
-            GLES20.glDisableVertexAttribArray(aDirectionVectorLocation);
-            GLES20.glDisableVertexAttribArray(aParticleStartTimeLocation);
+            GLES30.glDisableVertexAttribArray(aPositionLocation);
+            GLES30.glDisableVertexAttribArray(aDirectionVectorLocation);
+            GLES30.glDisableVertexAttribArray(aColorLocation);
+            GLES30.glDisableVertexAttribArray(aDirectionVectorLocation);
+            GLES30.glDisableVertexAttribArray(aParticleStartTimeLocation);
         }
     }
 
     public void onDrawFrame(float[] mMVPMatrix, float elapsedTime, float alpha, int start, int end){
-        GLES20.glUseProgram(mProgram);
+        GLES30.glUseProgram(mProgram);
         //int dataOffset = 0;
 
-        uMatrixLocation = GLES20.glGetUniformLocation(mProgram, "u_Matrix");
-        GLES20.glUniformMatrix4fv(uMatrixLocation, 1, false, mMVPMatrix,0);
-        uTimeLocation = GLES20.glGetUniformLocation(mProgram, "u_Time");
-        GLES20.glUniform1f(uTimeLocation,elapsedTime);
+        uMatrixLocation = GLES30.glGetUniformLocation(mProgram, "u_Matrix");
+        GLES30.glUniformMatrix4fv(uMatrixLocation, 1, false, mMVPMatrix,0);
+        uTimeLocation = GLES30.glGetUniformLocation(mProgram, "u_Time");
+        GLES30.glUniform1f(uTimeLocation,elapsedTime);
 
         if(resID!=0) {
-            uTextureLocation = GLES20.glGetUniformLocation(mProgram, "u_TextureUnit");
-            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, texture);
-            GLES20.glUniform1i(uTextureLocation, 0);
+            uTextureLocation = GLES30.glGetUniformLocation(mProgram, "u_TextureUnit");
+            GLES30.glActiveTexture(GLES30.GL_TEXTURE0);
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, texture);
+            GLES30.glUniform1i(uTextureLocation, 0);
 
-            int pointerAlpha = GLES20.glGetUniformLocation(mProgram, "u_PointerAlpha");
-            GLES20.glUniform1f(pointerAlpha,alpha);
+            int pointerAlpha = GLES30.glGetUniformLocation(mProgram, "u_PointerAlpha");
+            GLES30.glUniform1f(pointerAlpha,alpha);
         }
-        aPositionLocation = GLES20.glGetAttribLocation(mProgram, "a_Position");
-        aColorLocation = GLES20.glGetAttribLocation(mProgram, "a_Color");
-        aDirectionVectorLocation = GLES20.glGetAttribLocation(mProgram, "a_DirectionVector");
-        aParticleStartTimeLocation = GLES20.glGetAttribLocation(mProgram, "a_ParticleStartTime");
+        aPositionLocation = GLES30.glGetAttribLocation(mProgram, "a_Position");
+        aColorLocation = GLES30.glGetAttribLocation(mProgram, "a_Color");
+        aDirectionVectorLocation = GLES30.glGetAttribLocation(mProgram, "a_DirectionVector");
+        aParticleStartTimeLocation = GLES30.glGetAttribLocation(mProgram, "a_ParticleStartTime");
 
 
         vertexBuffer.position(start*POSITION_COMPONENT_COUNT*BYTES_PER_FLOAT);
         // this.setUniforms(mMVPMatrix, 10); // change time
-        GLES20.glVertexAttribPointer(aPositionLocation, POSITION_COMPONENT_COUNT,
-                GLES20.GL_FLOAT, false,
+        GLES30.glVertexAttribPointer(aPositionLocation, POSITION_COMPONENT_COUNT,
+                GLES30.GL_FLOAT, false,
                 POSITION_COMPONENT_COUNT*BYTES_PER_FLOAT, vertexBuffer);
-        GLES20.glEnableVertexAttribArray(aPositionLocation);
+        GLES30.glEnableVertexAttribArray(aPositionLocation);
 
         //vertexBuffer.position(0);
         //dataOffset+=POSITION_COMPONENT_COUNT;
         colorBuffer.position(start*POSITION_COMPONENT_COUNT*BYTES_PER_FLOAT);
         //vertexBuffer.position(dataOffset);
-        GLES20.glVertexAttribPointer(aColorLocation, COLOR_COMPONENT_COUNT,
-                GLES20.GL_FLOAT,false,
+        GLES30.glVertexAttribPointer(aColorLocation, COLOR_COMPONENT_COUNT,
+                GLES30.GL_FLOAT,false,
                 COLOR_COMPONENT_COUNT*BYTES_PER_FLOAT, colorBuffer);
         //dataOffset+=COLOR_COMPONENT_COUNT;
-        GLES20.glEnableVertexAttribArray(aColorLocation);
+        GLES30.glEnableVertexAttribArray(aColorLocation);
 
         vectorBuffer.position(start*POSITION_COMPONENT_COUNT*BYTES_PER_FLOAT);
         //vertexBuffer.position(dataOffset);
-        GLES20.glVertexAttribPointer(aDirectionVectorLocation, VECTOR_COMPONENT_COUNT,
-                GLES20.GL_FLOAT, false,
+        GLES30.glVertexAttribPointer(aDirectionVectorLocation, VECTOR_COMPONENT_COUNT,
+                GLES30.GL_FLOAT, false,
                 VECTOR_COMPONENT_COUNT*BYTES_PER_FLOAT, vectorBuffer);
 
         // dataOffset+=VECTOR_COMPONENT_COUNT;
-        GLES20.glEnableVertexAttribArray(aDirectionVectorLocation);
+        GLES30.glEnableVertexAttribArray(aDirectionVectorLocation);
 
         timeBuffer.position(start*POSITION_COMPONENT_COUNT*BYTES_PER_FLOAT);
         //vertexBuffer.position(dataOffset);
-        GLES20.glVertexAttribPointer(aParticleStartTimeLocation, PARTICLE_START_TIME_COMPONENT_COUNT,
-                GLES20.GL_FLOAT, false,
+        GLES30.glVertexAttribPointer(aParticleStartTimeLocation, PARTICLE_START_TIME_COMPONENT_COUNT,
+                GLES30.GL_FLOAT, false,
                 PARTICLE_START_TIME_COMPONENT_COUNT*BYTES_PER_FLOAT, timeBuffer);
-        GLES20.glEnableVertexAttribArray(aParticleStartTimeLocation);
+        GLES30.glEnableVertexAttribArray(aParticleStartTimeLocation);
 
         //.position(0);
 
-        GLES20.glEnable( GL_BLEND );
+        GLES30.glEnable( GL_BLEND );
 
         if(BLEND_TYPE == VN_BLEND) {
-            GLES20.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            GLES30.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         }else if(BLEND_TYPE == LIGHT_BLEND) {
-            GLES20.glBlendFunc( GL_ONE, GL_ONE );
+            GLES30.glBlendFunc( GL_ONE, GL_ONE );
         }else{
-            GLES20.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            GLES30.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         }
 
-        GLES20.glDrawArrays(GLES20.GL_POINTS,0, end);
+        GLES30.glDrawArrays(GLES30.GL_POINTS,0, end);
 
-        GLES20.glDisableVertexAttribArray(aPositionLocation);
-        GLES20.glDisableVertexAttribArray(aDirectionVectorLocation);
-        GLES20.glDisableVertexAttribArray(aColorLocation);
-        GLES20.glDisableVertexAttribArray(aDirectionVectorLocation);
-        GLES20.glDisableVertexAttribArray(aParticleStartTimeLocation);
+        GLES30.glDisableVertexAttribArray(aPositionLocation);
+        GLES30.glDisableVertexAttribArray(aDirectionVectorLocation);
+        GLES30.glDisableVertexAttribArray(aColorLocation);
+        GLES30.glDisableVertexAttribArray(aDirectionVectorLocation);
+        GLES30.glDisableVertexAttribArray(aParticleStartTimeLocation);
     }
 
     private int loadTexture(Context context, int resID){
         int[] textures = new int[1];
-        GLES20.glGenTextures(1, textures, 0);
+        GLES30.glGenTextures(1, textures, 0);
         final BitmapFactory.Options options = new BitmapFactory.Options();
         options.inScaled = false;
 
@@ -607,13 +605,13 @@ public class CustomParticles {
 
         /*= BitmapFactory.decodeResource(
                 context.getResources(), resID, options);*/
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textures[0]);
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR_MIPMAP_LINEAR);
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
-        GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, textures[0]);
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D,GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_LINEAR_MIPMAP_LINEAR);
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_LINEAR);
+        GLUtils.texImage2D(GLES30.GL_TEXTURE_2D, 0, bitmap, 0);
         bitmap.recycle();
-        GLES20.glGenerateMipmap(GLES20.GL_TEXTURE_2D);
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
+        GLES30.glGenerateMipmap(GLES30.GL_TEXTURE_2D);
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, 0);
         return textures[0];
     }
 
@@ -630,9 +628,9 @@ public class CustomParticles {
         return aParticleStartTimeLocation;
     }
     public static int loadShader(int type, String shaderCode){
-        int shader = GLES20.glCreateShader(type);
-        GLES20.glShaderSource(shader, shaderCode);
-        GLES20.glCompileShader(shader);
+        int shader = GLES30.glCreateShader(type);
+        GLES30.glShaderSource(shader, shaderCode);
+        GLES30.glCompileShader(shader);
 
         return shader;
     }

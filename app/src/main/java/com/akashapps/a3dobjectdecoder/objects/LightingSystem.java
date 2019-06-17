@@ -4,8 +4,10 @@ import java.util.ArrayList;
 
 public class LightingSystem {
     private ArrayList<Light> lights;
+    private Light DirectionalLight;
     public LightingSystem(){
         lights = new ArrayList<>();
+        DirectionalLight = new Light(new SimpleVector(), new SimpleVector(), new SimpleVector(), 0f);
     }
 
     public void addLight(Light l) {
@@ -58,4 +60,15 @@ public class LightingSystem {
         return toRet;
     }
 
+    public Light getDirectionalLight() {
+        return DirectionalLight;
+    }
+
+    public void setDirectionalLight(Light DirectionalLight) {
+        this.DirectionalLight = DirectionalLight;
+    }
+
+    public Light getLight(int i){
+        return this.lights.get(i);
+    }
 }

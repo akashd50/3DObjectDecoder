@@ -3,9 +3,11 @@ package com.akashapps.a3dobjectdecoder.objects;
 import com.akashapps.a3dobjectdecoder.objects.SimpleVector;
 
 public class Light {
-    private SimpleVector location, diffuse, specular, ambient;
+    private SimpleVector location, diffuse, specular;
+    private float ambient;
     private float intensity;
-    public Light(SimpleVector l, SimpleVector diff, SimpleVector spec, SimpleVector am){
+    private float[] lightMVPMatrix, lightViewMatrix, lightProjectionMatrix;
+    public Light(SimpleVector l, SimpleVector diff, SimpleVector spec, float am){
         location = l; specular = spec; ambient = am; diffuse = diff;
     }
 
@@ -31,8 +33,6 @@ public class Light {
     }
     public float getIntensity(){return this.intensity;}
 
-
-
     public void setLocation(SimpleVector location) {
         this.location = location;
     }
@@ -53,13 +53,14 @@ public class Light {
         this.specular = specular;
     }
 
-    public SimpleVector getAmbient() {
+    public float getAmbient() {
         return ambient;
     }
 
-    public void setAmbient(SimpleVector ambient) {
+    public void setAmbient(float ambient) {
         this.ambient = ambient;
     }
 
-
+    public void setLightMVPMatrix(float[] mat){this.lightMVPMatrix = mat;}
+    public float[] getLightMVPMatrix(){return lightMVPMatrix;}
 }

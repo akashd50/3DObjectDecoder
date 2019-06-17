@@ -26,5 +26,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity android:name=".UI.SettingsActivity"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+            <intent-filter>
+                <action android:name="com.akashapps.shoottospace.SettingsActivity"/>
+            </intent-filter>
+        </activity>
     </application>
+    <uses-feature android:glEsVersion="0x00030000" android:required="true" />
 </manifest>

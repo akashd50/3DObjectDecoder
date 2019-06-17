@@ -2,8 +2,10 @@ package com.akashapps.a3dobjectdecoder.objects;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.view.MotionEvent;
 
 import com.akashapps.a3dobjectdecoder.R;
+import com.akashapps.a3dobjectdecoder.Utilities.Shader;
 import com.akashapps.a3dobjectdecoder.Utilities.Utilities;
 
 public class DPad extends Controller{
@@ -34,7 +36,7 @@ public class DPad extends Controller{
     private String type;
 
     //private Square dPadBack, dPad;
-    private TexturedPlane icon, background;
+    private Quad2D icon, background;
     public  String PREVIOUS_DIR_HOR = null;
 
     public DPad(SimpleVector center, float scale, Context context){
@@ -42,8 +44,16 @@ public class DPad extends Controller{
         length = scale;
         //this.type = type;
         Bitmap bp = null;
-        icon = new TexturedPlane(scale,scale,context, R.drawable.slider_iconn);
-        background = new TexturedPlane(scale*2,scale*2,context, R.drawable.dpad_back);
+        Texture t1 = new Texture("loadT", context, R.drawable.slider_icon);
+        Texture t2 = new Texture("loadT", context, R.drawable.dpad_back);
+        int quadProgram = Shader.getQuadTextureProgram();
+        icon = new Quad2D(scale,scale);
+        background = new Quad2D(scale*2,scale*2);
+        icon.setRenderPreferences(quadProgram);
+        icon.setTextureUnit(t1);
+        background.setRenderPreferences(quadProgram);
+        background.setTextureUnit(t2);
+
         icon.setOpacity(1.0f);
         background.setOpacity(1.0f);
 
@@ -56,110 +66,139 @@ public class DPad extends Controller{
         icon.draw(mMVPMatrix);
     }
 
-    public void onTouchDown(float x,float y){
-       if(icon.isClicked(x,y)){
+    public void onTouchDown(MotionEvent event, int id){
+        int index = event.findPointerIndex(id);
+       if(icon.isClicked(event.getX(index),event.getY(index))){
             this.isClicked = true;
+            super.activeMotionEvent = event;
+           activeMEId = id;
         }
     }
 
-    public void onTouchMove(float x,float y){
-        if(this.isClicked) {
-            float scrW = Utilities.getScreenWidthPixels();
-            float scrH = Utilities.getScreenHeightPixels();
-            float scrRatio = scrW/scrH;
+    public void onTouchMove(MotionEvent event){
+        if(event.equals(activeMotionEvent)) {
+            int index = event.findPointerIndex(activeMEId);
 
-            float tempX = (x - scrW/ 2)*scrRatio / (scrW/ 2);
-            //float tempY = (y-Utilities.SCREEN_HEIGHT/2)/ (Utilities./2);
-            float tempY = (scrH / 2 - y) * (2 / scrH);
+            if(index==-1) return;
 
-           float tempCal = length;
-            if(tempX<background.getDefaultX()+tempCal && tempX>background.getDefaultX()-tempCal) {
-                //dPad.changeTrasnformX(tempX);
+            float x = event.getX(index);
+            float y = event.getY(index);
 
-            }
-            //dPad.changeTrasnformX(getCircularX(x,y));
-            //dPad.changeTrasnformY(getCircularY(x,y));
-            this.setAngularTransforms(tempX,tempY);
+            if (this.isClicked) {
+                float scrW = Utilities.getScreenWidthPixels();
+                float scrH = Utilities.getScreenHeightPixels();
+                float scrRatio = scrW / scrH;
+
+                float tempX = (x - scrW / 2) * scrRatio / (scrW / 2);
+                //float tempY = (y-Utilities.SCREEN_HEIGHT/2)/ (Utilities./2);
+                float tempY = (scrH / 2 - y) * (2 / scrH);
+
+                float tempCal = length;
+                if (tempX < background.getDefaultX() + tempCal && tempX > background.getDefaultX() - tempCal) {
+                    //dPad.changeTrasnformX(tempX);
+
+                }
+                //dPad.changeTrasnformX(getCircularX(x,y));
+                //dPad.changeTrasnformY(getCircularY(x,y));
+                this.setAngularTransforms(tempX, tempY);
 
             /*if(x<dPadBack.getRight() && x>dPadBack.getLeft()) {
                 dPad.changeTrasnformX(tempX);
             }*/
 
-            if(icon.getTransformX()>background.getDefaultX()) {
-                currDirHor = DPAD_DIR_R;
-                float cVal = icon.getDefaultX();
-                if (icon.getTransformX() - cVal > 0.15f) {
-                    activeDpadX = FORTH_STEP;
-                } else if (icon.getTransformX()  - cVal> 0.10f) {
-                    activeDpadX = THIRD_STEP;
-                } else if (icon.getTransformX() - cVal > 0.05f) {
-                    activeDpadX = SECOND_STEP;
-                } else if (icon.getTransformX() - cVal > 0.0f) {
-                    activeDpadX = FIRST_STEP;
+                if (icon.getTransformX() > background.getDefaultX()) {
+                    currDirHor = DPAD_DIR_R;
+                    float cVal = icon.getDefaultX();
+                    if (icon.getTransformX() - cVal > 0.15f) {
+                        activeDpadX = FORTH_STEP;
+                    } else if (icon.getTransformX() - cVal > 0.10f) {
+                        activeDpadX = THIRD_STEP;
+                    } else if (icon.getTransformX() - cVal > 0.05f) {
+                        activeDpadX = SECOND_STEP;
+                    } else if (icon.getTransformX() - cVal > 0.0f) {
+                        activeDpadX = FIRST_STEP;
+                    }
+                } else if (icon.getTransformX() < icon.getDefaultX()) {
+                    currDirHor = DPAD_DIR_L;
+                    float temp = icon.getTransformX();
+                    float temp2 = background.getTransformX();
+                    if (-temp + temp2 > 0.15f) {
+                        activeDpadX = -FORTH_STEP;
+                    } else if (-temp + temp2 > 0.10f) {
+                        activeDpadX = -THIRD_STEP;
+                    } else if (-temp + temp2 > 0.05f) {
+                        activeDpadX = -SECOND_STEP;
+                    } else if (-temp + temp2 > 0.0f) {
+                        activeDpadX = -FIRST_STEP;
+                    }
                 }
-            }else if(icon.getTransformX()<icon.getDefaultX()){
-                currDirHor = DPAD_DIR_L;
-                float temp = icon.getTransformX();
-                float temp2 = background.getTransformX();
-                if (- temp + temp2 > 0.15f) {
-                    activeDpadX = -FORTH_STEP;
-                } else if (-temp + temp2 > 0.10f) {
-                    activeDpadX = -THIRD_STEP;
-                } else if (-temp + temp2 > 0.05f) {
-                    activeDpadX = -SECOND_STEP;
-                } else if (-temp + temp2 > 0.0f) {
-                    activeDpadX = -FIRST_STEP;
-                }
-            }
 
-            if(icon.getTransformY()> icon.getDefaultY()) {
-                currDirVer = DPAD_DIR_U;
-                float temp = icon.getTransformY();
-                float temp2 = background.getTransformY();
-                if (temp - temp2 > 0.15f) {
-                    activeDpadY = FORTH_STEP;
-                } else if (temp - temp2 > 0.10f) {
-                    activeDpadY = THIRD_STEP;
-                } else if (temp - temp2 > 0.05f) {
-                    activeDpadY = SECOND_STEP;
-                } else if (temp - temp2 > 0.0f) {
-                    activeDpadY = FIRST_STEP;
+                if (icon.getTransformY() > icon.getDefaultY()) {
+                    currDirVer = DPAD_DIR_U;
+                    float temp = icon.getTransformY();
+                    float temp2 = background.getTransformY();
+                    if (temp - temp2 > 0.15f) {
+                        activeDpadY = FORTH_STEP;
+                    } else if (temp - temp2 > 0.10f) {
+                        activeDpadY = THIRD_STEP;
+                    } else if (temp - temp2 > 0.05f) {
+                        activeDpadY = SECOND_STEP;
+                    } else if (temp - temp2 > 0.0f) {
+                        activeDpadY = FIRST_STEP;
+                    }
+                } else if (icon.getTransformY() < icon.getDefaultY()) {
+                    currDirVer = DPAD_DIR_D;
+                    float temp = icon.getTransformY();
+                    float temp2 = background.getTransformY();
+                    if (-temp - (-temp2) > 0.15f) {
+                        activeDpadY = -FORTH_STEP;
+                    } else if (-temp - (-temp2) > 0.10f) {
+                        activeDpadY = -THIRD_STEP;
+                    } else if (-temp - (-temp2) > 0.05f) {
+                        activeDpadY = -SECOND_STEP;
+                    } else if (-temp - (-temp2) > 0.0f) {
+                        activeDpadY = -FIRST_STEP;
+                    }
                 }
-            }else if(icon.getTransformY()<icon.getDefaultY()){
-                currDirVer = DPAD_DIR_D;
-                float temp = icon.getTransformY();
-                float temp2 = background.getTransformY();
-                if ( -temp - (-temp2) > 0.15f) {
-                    activeDpadY = -FORTH_STEP;
-                } else if (-temp - (-temp2) > 0.10f) {
-                    activeDpadY = -THIRD_STEP;
-                } else if (-temp - (-temp2) > 0.05f) {
-                    activeDpadY = -SECOND_STEP;
-                } else if (-temp - (-temp2) > 0.0f) {
-                    activeDpadY = -FIRST_STEP;
-                }
-            }
 
             /*if(y<background.getBottom() && y>dPadBack.getTop()){
                 //dPad.changeTrasnformY(tempY);
             }*/
+            }
         }
     }
 
-    public void onTouchUp(float x,float y){
-        isClicked = false;
-        icon.changeTransform(icon.getDefaultX(), icon.getDefaultY(),icon.getDefaultZ());
-        /*dPad.changeTrasnformY(dPad.getDefaultY());
-        dPad.changeTrasnformX(dPad.getDefaultX());*/
-        lastActiveDpadX = activeDpadX;
-        lastActiveDpadY = activeDpadY;
+    public void onTouchUp(MotionEvent event){
+        int index = event.getActionIndex();
+        if(index!=-1) {
+            if (icon.isClicked(event.getX(index), event.getY(index))) {
+                isClicked = false;
+                icon.changeTransform(icon.getDefaultX(), icon.getDefaultY(), icon.getDefaultZ());
+                lastActiveDpadX = activeDpadX;
+                lastActiveDpadY = activeDpadY;
 
-        activeDpadX = REST_STEP;
-        activeDpadY = REST_STEP;
-        PREVIOUS_DIR_HOR = currDirHor;
-        currDirVer = null;
-        currDirHor = null;
-        icon.changeTransform(icon.getDefaultX(),icon.getDefaultY(),icon.getDefaultZ());
+                activeDpadX = REST_STEP;
+                activeDpadY = REST_STEP;
+                PREVIOUS_DIR_HOR = currDirHor;
+                currDirVer = null;
+                currDirHor = null;
+                icon.changeTransform(icon.getDefaultX(), icon.getDefaultY(), icon.getDefaultZ());
+                activeMotionEvent = null;
+            }
+        }else{
+            isClicked = false;
+            icon.changeTransform(icon.getDefaultX(), icon.getDefaultY(), icon.getDefaultZ());
+            lastActiveDpadX = activeDpadX;
+            lastActiveDpadY = activeDpadY;
+
+            activeDpadX = REST_STEP;
+            activeDpadY = REST_STEP;
+            PREVIOUS_DIR_HOR = currDirHor;
+            currDirVer = null;
+            currDirHor = null;
+            icon.changeTransform(icon.getDefaultX(), icon.getDefaultY(), icon.getDefaultZ());
+            activeMotionEvent = null;
+        }
     }
     public float getLastActiveDpadX(){return lastActiveDpadX;}
     public float getLastActiveDpadY(){return lastActiveDpadY;}
@@ -258,7 +297,7 @@ public class DPad extends Controller{
         icon.changeTransform(base,perp,icon.getDefaultZ());
     }
 
-    public TexturedPlane getPad(){return this.icon;}
+    public Quad2D getPad(){return this.icon;}
     public float getActiveDpadX(){return this.activeDpadX;}
     public float getActiveDpadY(){return this.activeDpadY;}
     public boolean isDirHor(String dir){

@@ -8,8 +8,7 @@ public abstract class SceneObject {
 
     protected SceneObject followingObject;
 
-    public abstract void onDrawFrame(float[] mMVPMatrix);
-    public abstract void setMainLight(SimpleVector light);
+    public abstract void onDrawFrame(float[] mMVPMatrix, float[] VIEW_MATRIX, SimpleVector eyeLocation);
     public abstract SimpleVector getLocation();
    /* public abstract SimpleVector getFront();
     public abstract SimpleVector getUp();
@@ -21,6 +20,7 @@ public abstract class SceneObject {
     public abstract float getLength();
     public abstract float getBreadth();
     public abstract float getHeight();
+
     public abstract Collider getCollider();
     public abstract void setCollider(Collider c);
 

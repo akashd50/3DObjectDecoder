@@ -14,6 +14,7 @@ public class Pose {
     private FloatBuffer poseData;
     private SimpleVector negX, posX, negY, posY, negZ, posZ;
     private int id;
+    private int vertexCount;
     private static int ID = 1000;
 
     public Pose(int fileID, ArrayList<Config> drawConfig, Context context){
@@ -102,7 +103,8 @@ public class Pose {
 
         }
 
-        ByteBuffer vb = ByteBuffer.allocateDirect(vertices.length*4);
+        vertexCount = vertices.length*4;
+        ByteBuffer vb = ByteBuffer.allocateDirect(vertexCount);
         vb.order(ByteOrder.nativeOrder());
         poseData = vb.asFloatBuffer();
         poseData.put(vertices);
@@ -140,4 +142,5 @@ public class Pose {
     public SimpleVector getFront() {
         return posZ;
     }
+    public int getVertexCount(){return vertexCount;}
 }

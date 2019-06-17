@@ -14,8 +14,8 @@ public class MainGameSurfaceView extends GLSurfaceView {
         super(context);
 
         touchController = new TouchController();
-        this.setEGLContextClientVersion(2);
-        this.setEGLConfigChooser(8,8,8,8,24,0);
+        this.setEGLContextClientVersion(3);
+        this.setEGLConfigChooser(8,8,8,8,24,8);
         int uiOptions = this.SYSTEM_UI_FLAG_FULLSCREEN;
         this.setSystemUiVisibility(uiOptions);
 
@@ -51,6 +51,7 @@ public class MainGameSurfaceView extends GLSurfaceView {
                 break;
             case MotionEvent.ACTION_POINTER_DOWN:
                 touchController.extraPointerDown(event);
+                mRenderer.onTouchDown(event);
                 break;
             case MotionEvent.ACTION_UP:
                 touchController.touchUp(event);
@@ -58,6 +59,7 @@ public class MainGameSurfaceView extends GLSurfaceView {
                 break;
             case MotionEvent.ACTION_POINTER_UP:
                 touchController.extraPointerUp();
+                mRenderer.onTouchUp(event);
                 break;
             case MotionEvent.ACTION_MOVE:
                 touchController.touchMovement(event);

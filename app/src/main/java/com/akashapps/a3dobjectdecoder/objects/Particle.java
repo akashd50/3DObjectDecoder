@@ -13,8 +13,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 
-import javax.microedition.khronos.opengles.GL;
-
 import static android.opengl.GLES20.GL_BLEND;
 import static android.opengl.GLES20.GL_ONE;
 import static android.opengl.GLES20.GL_ONE_MINUS_SRC_ALPHA;
@@ -23,7 +21,7 @@ import static android.opengl.GLES20.GL_SRC_ALPHA;
 public class Particle {
     public float initialVelX, initialVelY;
     public float tempVelX, tempVelY, tempX, tempY;
-    public TexturedPlane particle, tail;
+    public Quad2D particle, tail;
     private static Context context;
     public int lifetime;
     int timeCounter;

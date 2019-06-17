@@ -2,16 +2,12 @@ package com.akashapps.a3dobjectdecoder.Utilities;
 
 import android.content.Context;
 import android.content.res.Resources;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Paint;
 
-import com.akashapps.a3dobjectdecoder.R;
-import com.akashapps.a3dobjectdecoder.objects.TexturedPlane;
+import com.akashapps.a3dobjectdecoder.objects.Quad2D;
 
 public class Utilities {
     private static Context context;
-    public static TexturedPlane[] CHARS_ARRAY = new TexturedPlane[127];
+    public static Quad2D[] CHARS_ARRAY = new Quad2D[127];
     public static boolean TEXTURES_LOADED = false;
     public static float SCR_RATIO = -1;
     public static float SCR_ACT_HEIGHT = -1;

@@ -1,12 +1,17 @@
 package com.akashapps.a3dobjectdecoder.logic;
 
-import com.akashapps.a3dobjectdecoder.objects.Controller;
+import android.view.MotionEvent;
 
+import com.akashapps.a3dobjectdecoder.objects.Controller;
 import java.util.ArrayList;
 
 public class SceneControlHandler {
     private ArrayList<Controller> controllers;
-    public SceneControlHandler(){
+    private TouchController touchController;
+    private int pointerIndex;
+    public SceneControlHandler(TouchController tc){
+        touchController = tc;
+        pointerIndex = -1;
         controllers = new ArrayList<>();
     }
 
@@ -20,22 +25,32 @@ public class SceneControlHandler {
         }
     }
 
-    public void onTouchDown(float x, float y){
+    public void onTouchDown(MotionEvent event){
+        if(pointerIndex==-1){
+            pointerIndex=0;
+        }else{
+            pointerIndex++;
+        }
         for(Controller c: controllers){
-            c.onTouchDown(x,y);
+            c.onTouchDown(event, event.getPointerId(event.getActionIndex()));
         }
     }
 
-    public void onTouchUp(float x, float y){
+    public void onTouchUp(MotionEvent event){
         for(Controller c: controllers){
-            c.onTouchUp(x,y);
+            c.onTouchUp(event);
+        }
+        if(pointerIndex==0){
+            pointerIndex=-1;
+        }else{
+            pointerIndex--;
         }
     }
 
 
-    public void onTouchMove(float x, float y){
+    public void onTouchMove(MotionEvent event){
         for(Controller c: controllers){
-            c.onTouchMove(x,y);
+            c.onTouchMove(event);
         }
     }
 }

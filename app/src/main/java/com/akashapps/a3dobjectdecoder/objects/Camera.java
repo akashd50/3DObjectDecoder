@@ -124,7 +124,7 @@ public class Camera {
         //update
 
     }
-
+    public float[] getProjectionMatrix(){return projectionMatrix;}
     public void setFollowDelay(SimpleVector delay){
         followDelay.x = delay.x;
     }

@@ -18,8 +18,8 @@ public class GLRendererView extends GLSurfaceView{
         //utilities = new Utilities(context);
 
         touchController = new TouchController();
-        this.setEGLContextClientVersion(2);
-        this.setEGLConfigChooser(8,8,8,8,24,0);
+        this.setEGLContextClientVersion(3);
+        this.setEGLConfigChooser(8,8,8,8,24,8);
         int uiOptions = this.SYSTEM_UI_FLAG_FULLSCREEN;
         this.setSystemUiVisibility(uiOptions);
         /*this.setEGLConfigChooser(new GLSurfaceView.EGLConfigChooser() {

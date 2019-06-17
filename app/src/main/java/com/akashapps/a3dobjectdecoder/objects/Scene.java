@@ -20,10 +20,10 @@ public class Scene {
        // animatedObjects.add(sceneObject);
     }
 
-    public void onDrawFrame(float[] mMVPMatrix){
+    public void onDrawFrame(float[] mMVPMatrix, float[] VIEW_MATRIX, SimpleVector eyeLocation){
         //set the view matrix for all object classes.
         for(SceneObject s: objects){
-            s.onDrawFrame(mMVPMatrix);
+            s.onDrawFrame(mMVPMatrix, VIEW_MATRIX, eyeLocation);
         }
 
        /* for(AnimatedObject a: animatedObjects){
@@ -31,10 +31,19 @@ public class Scene {
         }*/
     }
 
+    public void onDrawFrame(float[] mMVPMatrix){
+        //set the view matrix for all object classes.
+        for(SceneObject s: objects){
+            s.onDrawFrame(mMVPMatrix, camera.getViewMatrix(), new SimpleVector(-camera.getPosition().x, -camera.getPosition().y, -camera.getPosition().z));
+        }
+    }
+
+
     public void setEyeLocation(SimpleVector loc){
         for(SceneObject s: objects){
             if(s instanceof Object3D) {
-                if(((Object3D) s).getDrawMethod() == 2 ) ((Object3D) s).setEyeLocation(loc);
+                //if(((Object3D) s).getDrawMethod() == 2 ) ((Object3D) s).setEyeLocation(loc);
+                //((Object3D) s).setEyeLocation(loc);
             }
         }
     }
@@ -51,14 +60,14 @@ public class Scene {
         }
     }
 
-    public void setSceneLight(SimpleVector light){
+    /*public void setSceneLight(SimpleVector light){
         for(SceneObject s: objects){
             s.setMainLight(light);
         }
-        /*for(AnimatedObject a: animatedObjects){
+        *//*for(AnimatedObject a: animatedObjects){
             a.setMainLight(light);
-        }*/
-    }
+        }*//*
+    }*/
 
     public Camera getCamera() {
         return camera;

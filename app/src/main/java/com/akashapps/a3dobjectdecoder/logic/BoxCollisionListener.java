@@ -1,14 +1,11 @@
 package com.akashapps.a3dobjectdecoder.logic;
 
 import com.akashapps.a3dobjectdecoder.objects.BoxCollider;
-import com.akashapps.a3dobjectdecoder.objects.CollisionEvent;
-import com.akashapps.a3dobjectdecoder.objects.Scene;
 import com.akashapps.a3dobjectdecoder.objects.SceneObject;
 
 import java.util.ArrayList;
-import java.util.logging.Handler;
 
-public class BoxCollisionListener extends CollisionListener {
+public class BoxCollisionListener implements CollisionListener {
     private SceneObject A;
     private ArrayList<SceneObject> B;
     private CollisionHandler HANDLER;
@@ -34,27 +31,20 @@ public class BoxCollisionListener extends CollisionListener {
    //     threadPool = new Thread[B.size()];
     //    for(int i=0;i<threadPool.length;i++) {
           Thread t = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                   // try {
-                        while (RUN) {
-                           // System.out.println("checking collisions");
-                            for (SceneObject b : B) {
-                                if (checkCollision(A, b)) {
-                                    //A.setVerticalAcc(0f);
-                                    HANDLER.onCollisionDetected(new CollisionEvent(A, b));
-                                } else {
-                                    HANDLER.noCollisionDetected(new CollisionEvent(A, b));
-                                }
-                            }
-
-                           // Thread.sleep(250);
+            @Override
+            public void run() {
+                while (RUN) {
+                    for (SceneObject b : B) {
+                        if (checkCollision(A, b)) {
+                            //A.setVerticalAcc(0f);
+                            HANDLER.onCollisionDetected(new CollisionEvent(A, b));
+                        } else {
+                            HANDLER.noCollisionDetected(new CollisionEvent(A, b));
                         }
-                   // } catch (InterruptedException e) {
-
-                   // }
+                    }
                 }
-            });
+            }
+        });
             t.start();
     }
 

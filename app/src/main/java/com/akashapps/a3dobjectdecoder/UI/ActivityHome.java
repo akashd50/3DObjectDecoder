@@ -65,21 +65,8 @@ public class ActivityHome extends AppCompatActivity {
                         //startActivity(new Intent(ActivityHome.this, GLRendererActivity.class));
                         break;
                     case R.id.settings_button_main:
-                        //final AlertDialog dialog = progressBarDialogBuilder();
-                       // dialog.show();
-                        /*new Thread(new Runnable() {
-                            @Override
-                            public void run() {*/
-                              /*  try {
-                                    Thread.sleep(3);
-                                    dialog.hide();
-                                }catch (InterruptedException e){
-
-                                }*/
-/*
-                            }
-                        }).start();
-*/
+                        Intent i = new Intent(ActivityHome.this,SettingsActivity.class);
+                        startActivity(i);
                         break;
                 }
             }

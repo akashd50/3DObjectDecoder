@@ -105,13 +105,15 @@ public class TouchController {
 
         if(event.getPointerCount()>1) {
             int scIndex = event.findPointerIndex(secondPointerID);
-            float tx = SCTNEWX;
-            float ty = SCTNEWY;
-            SCTNEWX = event.getX(scIndex);
-            SCTNEWY = event.getY(scIndex);
-            float dist = (float) Math.sqrt((TOUCHDOWNX - secondPtrX) * (TOUCHDOWNX - secondPtrX) + (TOUCHDOWNY - secondPtrY) * (TOUCHDOWNY - secondPtrY));
-            float distF = (float) Math.sqrt((TOUCHNEWX - SCTNEWX) * (TOUCHNEWX - SCTNEWX) + (TOUCHNEWY - SCTNEWY) * (TOUCHNEWY - SCTNEWY));
-            PINCH = (distF-dist)/100;
+            if(scIndex!=-1) {
+                float tx = SCTNEWX;
+                float ty = SCTNEWY;
+                SCTNEWX = event.getX(scIndex);
+                SCTNEWY = event.getY(scIndex);
+                float dist = (float) Math.sqrt((TOUCHDOWNX - secondPtrX) * (TOUCHDOWNX - secondPtrX) + (TOUCHDOWNY - secondPtrY) * (TOUCHDOWNY - secondPtrY));
+                float distF = (float) Math.sqrt((TOUCHNEWX - SCTNEWX) * (TOUCHNEWX - SCTNEWX) + (TOUCHNEWY - SCTNEWY) * (TOUCHNEWY - SCTNEWY));
+                PINCH = (distF - dist) / 100;
+            }
         }
 
         if(TOUCHNEWY>touchPrevY){
