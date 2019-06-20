@@ -17,26 +17,6 @@ import java.util.ArrayList;
 
 public class Object3D extends SceneObject {
     private static int ObjectID = 1000;
-    private int id;
-   // private static float[] VIEW_MATRIX;
-    private ArrayList<SimpleVector> vertices, normals, uvs;
-    private ArrayList<Config> drawConfig;
-    private FloatBuffer mTextureBuffer, vertexBuffer, normalBuffer;
-    private float[] verticesA, normalsA, uvsA, transformationMatrix;
-    private int mPositionHandle, normalHandle, mProgram, vertexCount;
-    private static final int COORDS_PER_VERTEX = 3;
-    private static final int BYTES_PER_FLOAT = 4;
-    private static int vertexStride = (COORDS_PER_VERTEX )* 4;
-    private int mMVPMatrixHandle, aTextureHandle, textureUniform;
-    private Texture textureUnit;
-
-    private int[] textures = new int[1];
-    private int[] normalMap;
-    private int mTextureId;
-
-    private float shininess, ambientLightVal, textureOpacity;
-
-    private SimpleVector NegX, PosX, NegY, PosY, NegZ, PosZ, location, rotation, scale;
     private static final String LIGHT_COLOR = "v_lightCol";
     private static final String AMBIENT_LIGHT = "v_ambient";
     private static final String OPACITY = "v_opacity";
@@ -48,8 +28,27 @@ public class Object3D extends SceneObject {
     public static final int LIGHTING_SYSTEM_SPEC = 1003;
     public static final int DIRECTIONAL_WITH_SPEC = 1004;
     public static final int LIGHT_WITH_SHADOW = 1005;
+    public static final int DEPTH_MAP = 1006;
+    public static final int SINGLE_COLOR = 1007;
+    private static final int COORDS_PER_VERTEX = 3;
+    private static final int BYTES_PER_FLOAT = 4;
+    private static int vertexStride = (COORDS_PER_VERTEX )* 4;
 
+    private int id;
+    private ArrayList<SimpleVector> vertices, normals, uvs;
+    private ArrayList<Config> drawConfig;
+    private FloatBuffer mTextureBuffer, vertexBuffer, normalBuffer;
+    private float[] verticesA, normalsA, uvsA, transformationMatrix;
+    private int mPositionHandle, normalHandle, mProgram, vertexCount;
 
+    private int mMVPMatrixHandle, aTextureHandle, textureUniform;
+    private Texture textureUnit;
+
+    private int[] textures = new int[1];
+    private int[] normalMap;
+
+    private float shininess, ambientLightVal, textureOpacity;
+    private SimpleVector NegX, PosX, NegY, PosY, NegZ, PosZ, location, rotation, scale, objectColor;
 
     private int OBJECT_TYPE;
     private Collider collider;
@@ -59,7 +58,6 @@ public class Object3D extends SceneObject {
     private LightingSystem lightingSystem;
 
     public Object3D(int fileId, Context context){
-        //lAngleX = 0f;lAngleY=0f;lAngleZ=1f;
         this.id = ObjectID++;
 
         transformationMatrix = new float[16];
@@ -132,173 +130,35 @@ public class Object3D extends SceneObject {
         }else {
             Matrix.translateM(transformationMatrix, 0, location.x, location.y, location.z);
         }
-
         Matrix.rotateM(transformationMatrix, 0, rotation.x, 1, 0, 0);
         Matrix.rotateM(transformationMatrix, 0, rotation.y, 0, 1, 0);
         Matrix.rotateM(transformationMatrix, 0, rotation.z, 0, 0, 1);
         Matrix.scaleM(transformationMatrix,0,scale.x, scale.y, scale.z);
-
         Matrix.multiplyMM(scratch,0,mMVPMatrix,0, transformationMatrix,0);
 
-
         //drawing------------------------------------------------
-
-        if(OBJECT_TYPE == DIRECTIONAL_LIGHT) {
-            setProgramAndUMat(scratch);
-            setULightVector();
-            setAmbientLightVector();
-            setOpacityVector();
-            setLightColorVector();
-            setUTextureUnit();
-            setPositionVectors();
-            setNormalVectors();
-            setTextureVectors();
-
-        }else if(OBJECT_TYPE == DIRECTIONAL_WITH_SPEC){
-            setProgramAndUMat(scratch);
-            setTransformationMatrix(transformationMatrix);
-            setULightVector();
-            setAmbientLightVector();
-            setOpacityVector();
-            setShinninessValue();
-            setEyeVector(eyeLocation);
-            setLightColorVector();
-            setUTextureUnit();
-            setPositionVectors();
-            setNormalVectors();
-            setTextureVectors();
-
-        }else if(OBJECT_TYPE== LIGHTING_SYSTEM_SPEC){
-            float[] modelView = new float[16];
-            float[] tempMat = new float[16];
-            float[] invModelView = new float[16];
-
-            SimpleVector mainlight = lightingSystem.getDirectionalLight().getLocation();
-            float[] vectorToLight = {mainlight.x,mainlight.y,mainlight.z,0.0f};
-            final float[] vectorToLightInEyeSpace = new float[4];
-
-            float[] loc = lightingSystem.getLightsLocationArray();
-
-            final float[] ptLightInEyeSpace = new float[loc.length];
-
-            Matrix.multiplyMM(modelView,0,VIEW_MATRIX,0,transformationMatrix,0);
-            Matrix.invertM(tempMat,0,modelView, 0);
-            Matrix.transposeM(invModelView,0,tempMat,0);
-
-            setProgramAndUMat(scratch);
-            setViewAndInvrViewMatrices(modelView, invModelView);
-
-            Matrix.multiplyMV(vectorToLightInEyeSpace, 0, VIEW_MATRIX, 0, vectorToLight, 0);
-            setULightVector(vectorToLightInEyeSpace);
-
-            for(int i=0;i<loc.length/4;i++) {
-                int offset = i*4;
-                Matrix.multiplyMV(ptLightInEyeSpace, offset, VIEW_MATRIX, 0, loc, offset);
-            }
-
-            setPointLights(ptLightInEyeSpace, lightingSystem.getLightsDiffuseArray());
-            setPointLightSpecular(lightingSystem.getLightsSpecArray());
-            setPointLightIntensity(lightingSystem.getLightIntensityArray());
-
-            setAmbientLightVector();
-            setOpacityVector();
-            setLightColorVector();
-            setEyeVector(eyeLocation);
-            setUTextureUnit();
-            setShinninessValue();
-            setPositionVectors();
-            setNormalVectors();
-            setTextureVectors();
-        }else if(OBJECT_TYPE == DIFF_N_SPEC_MAP){
-            float[] modelView = new float[16];
-            float[] tempMat = new float[16];
-            float[] invModelView = new float[16];
-
-            SimpleVector mainlight = lightingSystem.getDirectionalLight().getLocation();
-            float[] vectorToLight = {mainlight.x,mainlight.y,mainlight.z,0.0f};
-            final float[] vectorToLightInEyeSpace = new float[4];
-
-            float[] loc = lightingSystem.getLightsLocationArray();
-
-            final float[] ptLightInEyeSpace = new float[loc.length];
-
-            Matrix.multiplyMM(modelView,0,VIEW_MATRIX,0,transformationMatrix,0);
-            Matrix.invertM(tempMat,0,modelView, 0);
-            Matrix.transposeM(invModelView,0,tempMat,0);
-
-            setProgramAndUMat(scratch);
-            setViewAndInvrViewMatrices(modelView, invModelView);
-
-            Matrix.multiplyMV(vectorToLightInEyeSpace, 0, VIEW_MATRIX, 0, vectorToLight, 0);
-            setULightVector(vectorToLightInEyeSpace);
-
-            for(int i=0;i<loc.length/4;i++) {
-                int offset = i*4;
-                Matrix.multiplyMV(ptLightInEyeSpace, offset, VIEW_MATRIX, 0, loc, offset);
-            }
-
-            setPointLights(ptLightInEyeSpace, lightingSystem.getLightsDiffuseArray());
-            setPointLightSpecular(lightingSystem.getLightsSpecArray());
-            setPointLightIntensity(lightingSystem.getLightIntensityArray());
-
-            setAmbientLightVector();
-            setOpacityVector();
-            setLightColorVector();
-            setEyeVector(eyeLocation);
-
-            setUTextureUnit();
-            setUSpecularUnit();
-
-            setShinninessValue();
-            setPositionVectors();
-            setNormalVectors();
-            setTextureVectors();
-        }else if(OBJECT_TYPE == LIGHT_WITH_SHADOW){
-
-            float[] modelView = new float[16];
-            float[] tempMat = new float[16];
-            float[] invModelView = new float[16];
-
-            SimpleVector mainlight = lightingSystem.getDirectionalLight().getLocation();
-            float[] vectorToLight = {mainlight.x,mainlight.y,mainlight.z,0.0f};
-            final float[] vectorToLightInEyeSpace = new float[4];
-
-            float[] loc = lightingSystem.getLightsLocationArray();
-
-            final float[] ptLightInEyeSpace = new float[loc.length];
-
-            Matrix.multiplyMM(modelView,0,VIEW_MATRIX,0,transformationMatrix,0);
-            Matrix.invertM(tempMat,0,modelView, 0);
-            Matrix.transposeM(invModelView,0,tempMat,0);
-
-            setProgramAndUMat(scratch);
-            setViewAndInvrViewMatrices(modelView, invModelView);
-
-            Matrix.multiplyMV(vectorToLightInEyeSpace, 0, VIEW_MATRIX, 0, vectorToLight, 0);
-            setULightVector(vectorToLightInEyeSpace);
-
-            for(int i=0;i<loc.length/4;i++) {
-                int offset = i*4;
-                Matrix.multiplyMV(ptLightInEyeSpace, offset, VIEW_MATRIX, 0, loc, offset);
-            }
-
-            setPointLights(ptLightInEyeSpace, lightingSystem.getLightsDiffuseArray());
-            setPointLightSpecular(lightingSystem.getLightsSpecArray());
-            setPointLightIntensity(lightingSystem.getLightIntensityArray());
-
-            setAmbientLightVector();
-            setOpacityVector();
-            setLightColorVector();
-            setEyeVector(eyeLocation);
-
-            setUTextureUnit();
-            //setUSpecularUnit();
-            setUShawowMapUnit();
-
-            setShinninessValue();
-            setPositionVectors();
-            setNormalVectors();
-            setTextureVectors();
+        switch (OBJECT_TYPE) {
+            case DIRECTIONAL_LIGHT:
+                renderWithDirectionalLight(scratch);
+                break;
+            case DIRECTIONAL_WITH_SPEC:
+                renderWithDirectionalLightAndSpecularRef(scratch, transformationMatrix, eyeLocation);
+                break;
+            case LIGHTING_SYSTEM_SPEC:
+                renderWithLightingSystem(scratch, VIEW_MATRIX, eyeLocation);
+                break;
+            case DIFF_N_SPEC_MAP:
+                renderWithDiffAndSpecMaps(scratch, VIEW_MATRIX, eyeLocation);
+                break;
+            case LIGHT_WITH_SHADOW:
+                renderWithLightingSystemAndShadowMap(scratch, VIEW_MATRIX, eyeLocation);
+                break;
+            case DEPTH_MAP:
+                renderDepthMap(scratch);
+                break;
+            case SINGLE_COLOR:
+                renderWithSingleColor(scratch);
+                break;
         }
 
         GLES30.glEnable(GLES30.GL_BLEND);
@@ -310,69 +170,190 @@ public class Object3D extends SceneObject {
         GLES30.glDisableVertexAttribArray(aTextureHandle);
     }
 
-    public void depthMapRendering(int p, float[] matrix){
-        float[] modelMat = new float[16];
-        Matrix.setIdentityM(modelMat,0);
-        Matrix.translateM(modelMat, 0, location.x, location.y, location.z);
-        Matrix.rotateM(modelMat, 0, rotation.x, 1, 0, 0);
-        Matrix.rotateM(modelMat, 0, rotation.y, 0, 1, 0);
-        Matrix.rotateM(modelMat, 0, rotation.z, 0, 0, 1);
-        Matrix.scaleM(modelMat,0,scale.x, scale.y, scale.z);
+    private void renderWithDirectionalLight(float[] mvpMatrix){
+        setProgramAndUMat(mvpMatrix);
+        setULightVector();
+        setAmbientLightVector();
+        setOpacityVector();
+        setLightColorVector();
+        setUTextureUnit();
+        setPositionVectors();
+        setNormalVectors();
+        setTextureVectors();
+    }
+    private void renderWithDirectionalLightAndSpecularRef(float[] mvpMatrix, float[] model, SimpleVector eyeLocation){
+        setProgramAndUMat(mvpMatrix);
+        setTransformationMatrix(model);
+        setULightVector();
+        setAmbientLightVector();
+        setOpacityVector();
+        setShinninessValue();
+        setEyeVector(eyeLocation);
+        setLightColorVector();
+        setUTextureUnit();
+        setPositionVectors();
+        setNormalVectors();
+        setTextureVectors();
+    }
+    private void renderWithLightingSystem(float[] mvpMatrix, float[] viewMatrix, SimpleVector eyeLocation){
+        float[] modelView = new float[16];
+        float[] tempMat = new float[16];
+        float[] invModelView = new float[16];
 
-        GLES30.glUseProgram(p);
-        float[] scratch = new float[16];
-        Matrix.multiplyMM(scratch,0,matrix,0, modelMat,0);
+        SimpleVector mainlight = lightingSystem.getDirectionalLight().getLocation();
+        float[] vectorToLight = {mainlight.x,mainlight.y,mainlight.z,0.0f};
+        final float[] vectorToLightInEyeSpace = new float[4];
 
-        int mMVPMatrixHandle = GLES30.glGetUniformLocation(p, "u_Matrix");
-        GLES30.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, scratch, 0);
+        float[] loc = lightingSystem.getLightsLocationArray();
 
-       // int model = GLES30.glGetUniformLocation(p, "model");
-       // GLES30.glUniformMatrix4fv(model, 1, false, modelMat, 0);
+        final float[] ptLightInEyeSpace = new float[loc.length];
 
-        int position = GLES30.glGetAttribLocation(p, "a_Position");
+        Matrix.multiplyMM(modelView,0,viewMatrix,0,transformationMatrix,0);
+        Matrix.invertM(tempMat,0,modelView, 0);
+        Matrix.transposeM(invModelView,0,tempMat,0);
+
+        setProgramAndUMat(mvpMatrix);
+        setViewAndInvrViewMatrices(modelView, invModelView);
+
+        Matrix.multiplyMV(vectorToLightInEyeSpace, 0, viewMatrix, 0, vectorToLight, 0);
+        setULightVector(vectorToLightInEyeSpace);
+
+        for(int i=0;i<loc.length/4;i++) {
+            int offset = i*4;
+            Matrix.multiplyMV(ptLightInEyeSpace, offset, viewMatrix, 0, loc, offset);
+        }
+        setPointLights(ptLightInEyeSpace, lightingSystem.getLightsDiffuseArray());
+        setPointLightSpecular(lightingSystem.getLightsSpecArray());
+        setPointLightIntensity(lightingSystem.getLightIntensityArray());
+        setAmbientLightVector();
+        setOpacityVector();
+        setLightColorVector();
+        setEyeVector(eyeLocation);
+        setUTextureUnit();
+        setShinninessValue();
+        setPositionVectors();
+        setNormalVectors();
+        setTextureVectors();
+    }
+
+    private void renderWithDiffAndSpecMaps(float[] mvpMatrix, float[] viewMatrix, SimpleVector eyeLocation){
+        float[] modelView = new float[16];
+        float[] tempMat = new float[16];
+        float[] invModelView = new float[16];
+
+        SimpleVector mainlight = lightingSystem.getDirectionalLight().getLocation();
+        float[] vectorToLight = {mainlight.x,mainlight.y,mainlight.z,0.0f};
+        final float[] vectorToLightInEyeSpace = new float[4];
+
+        float[] loc = lightingSystem.getLightsLocationArray();
+
+        final float[] ptLightInEyeSpace = new float[loc.length];
+
+        Matrix.multiplyMM(modelView,0,viewMatrix,0,transformationMatrix,0);
+        Matrix.invertM(tempMat,0,modelView, 0);
+        Matrix.transposeM(invModelView,0,tempMat,0);
+
+        setProgramAndUMat(mvpMatrix);
+        setViewAndInvrViewMatrices(modelView, invModelView);
+
+        Matrix.multiplyMV(vectorToLightInEyeSpace, 0, viewMatrix, 0, vectorToLight, 0);
+        setULightVector(vectorToLightInEyeSpace);
+
+        for(int i=0;i<loc.length/4;i++) {
+            int offset = i*4;
+            Matrix.multiplyMV(ptLightInEyeSpace, offset, viewMatrix, 0, loc, offset);
+        }
+
+        setPointLights(ptLightInEyeSpace, lightingSystem.getLightsDiffuseArray());
+        setPointLightSpecular(lightingSystem.getLightsSpecArray());
+        setPointLightIntensity(lightingSystem.getLightIntensityArray());
+
+        setAmbientLightVector();
+        setOpacityVector();
+        setLightColorVector();
+        setEyeVector(eyeLocation);
+
+        setUTextureUnit();
+        setUSpecularUnit();
+
+        setShinninessValue();
+        setPositionVectors();
+        setNormalVectors();
+        setTextureVectors();
+    }
+
+    public void renderWithLightingSystemAndShadowMap(float[] mvpMatrix, float[] viewMatrix, SimpleVector eyeLocation){
+        float[] modelView = new float[16];
+        float[] tempMat = new float[16];
+        float[] invModelView = new float[16];
+
+        SimpleVector mainlight = lightingSystem.getDirectionalLight().getLocation();
+        float[] vectorToLight = {mainlight.x,mainlight.y,mainlight.z,0.0f};
+        final float[] vectorToLightInEyeSpace = new float[4];
+
+        float[] loc = lightingSystem.getLightsLocationArray();
+
+        final float[] ptLightInEyeSpace = new float[loc.length];
+
+        Matrix.multiplyMM(modelView,0,viewMatrix,0,transformationMatrix,0);
+        Matrix.invertM(tempMat,0,modelView, 0);
+        Matrix.transposeM(invModelView,0,tempMat,0);
+
+        setProgramAndUMat(mvpMatrix);
+        setViewAndInvrViewMatrices(modelView, invModelView);
+        Matrix.multiplyMM(mvpMatrix,0,lightingSystem.getLight(0).getLightMVPMatrix(),0, transformationMatrix,0);
+
+        int trMatrix = GLES30.glGetUniformLocation(mProgram, "u_lightSpaceMatrix");
+        GLES30.glUniformMatrix4fv(trMatrix , 1, false, mvpMatrix, 0);
+
+        Matrix.multiplyMV(vectorToLightInEyeSpace, 0, viewMatrix, 0, vectorToLight, 0);
+        setULightVector(vectorToLightInEyeSpace);
+
+        for(int i=0;i<loc.length/4;i++) {
+            int offset = i*4;
+            Matrix.multiplyMV(ptLightInEyeSpace, offset, viewMatrix, 0, loc, offset);
+        }
+
+        setPointLights(ptLightInEyeSpace, lightingSystem.getLightsDiffuseArray());
+        setPointLightSpecular(lightingSystem.getLightsSpecArray());
+        setPointLightIntensity(lightingSystem.getLightIntensityArray());
+
+        setAmbientLightVector();
+        setOpacityVector();
+        setLightColorVector();
+        setEyeVector(eyeLocation);
+
+        setUTextureUnit();
+        //setUSpecularUnit();
+        setUShawowMapUnit();
+
+        setShinninessValue();
+        setPositionVectors();
+        setNormalVectors();
+        setTextureVectors();
+    }
+
+
+    public void renderDepthMap(float[] matrix){
+        GLES30.glUseProgram(mProgram);
+
+        int mMVPMatrixHandle = GLES30.glGetUniformLocation(mProgram, "u_Matrix");
+        GLES30.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, matrix, 0);
+
+        int position = GLES30.glGetAttribLocation(mProgram, "a_Position");
         vertexBuffer.position(0);
         GLES30.glVertexAttribPointer(position, COORDS_PER_VERTEX,
                 GLES30.GL_FLOAT, false,
                 vertexStride, vertexBuffer);
         GLES30.glEnableVertexAttribArray(position);
-
-        GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, vertexCount);
-        GLES30.glDisableVertexAttribArray(mPositionHandle);
     }
 
-    public void depthMapOnScreenRendering(int p, float[] matrix, int depthMap){
-        float[] modelMat = new float[16];
-        Matrix.setIdentityM(modelMat,0);
-        Matrix.translateM(modelMat, 0, location.x, location.y, location.z);
-        Matrix.rotateM(modelMat, 0, rotation.x, 1, 0, 0);
-        Matrix.rotateM(modelMat, 0, rotation.y, 0, 1, 0);
-        Matrix.rotateM(modelMat, 0, rotation.z, 0, 0, 1);
-        Matrix.scaleM(modelMat,0,scale.x, scale.y, scale.z);
-
-        GLES30.glUseProgram(p);
-        int mMVPMatrixHandle = GLES30.glGetUniformLocation(p, "u_Matrix");
-        GLES30.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, matrix, 0);
-
-        int model = GLES30.glGetUniformLocation(p, "model");
-        GLES30.glUniformMatrix4fv(model, 1, false, modelMat, 0);
-
-        int position = GLES30.glGetAttribLocation(p, "a_Position");
-        GLES30.glVertexAttribPointer(position, COORDS_PER_VERTEX,
-                GLES30.GL_FLOAT, false,
-                vertexStride, vertexBuffer);
-        GLES30.glEnableVertexAttribArray(position);
-
-        mTextureBuffer.position(0);
-        int tex = GLES30.glGetAttribLocation(p,"a_textureCords");
-        GLES30.glVertexAttribPointer(tex,2,GLES30.GL_FLOAT,false,8,mTextureBuffer);
-        GLES30.glEnableVertexAttribArray(tex);
-
-        int tu = GLES30.glGetUniformLocation(p,"depthMap");
-        GLES30.glUniform1i(tu, 0);
-        GLES30.glActiveTexture(GLES30.GL_TEXTURE0);
-        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, depthMap);
-
-        GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, vertexCount);
+    public void renderWithSingleColor(float[] matrix){
+        setProgramAndUMat(matrix);
+        setPositionVectors();
+        setOpacityVector();
+        int colorPos = GLES30.glGetUniformLocation(mProgram, "color");
+        GLES30.glUniform3f(colorPos,objectColor.x,objectColor.y,objectColor.z);
     }
 
     private void setProgramAndUMat(float[] mMVPMatrix){
@@ -391,9 +372,6 @@ public class Object3D extends SceneObject {
         trMatrix = GLES30.glGetUniformLocation(mProgram, "inv_view_transformation");
         GLES30.glUniformMatrix4fv(trMatrix , 1, false, invView, 0);
         float[] scratch = new float[16];
-        Matrix.multiplyMM(scratch,0,lightingSystem.getLight(0).getLightMVPMatrix(),0, transformationMatrix,0);
-        trMatrix = GLES30.glGetUniformLocation(mProgram, "u_lightSpaceMatrix");
-        GLES30.glUniformMatrix4fv(trMatrix , 1, false, scratch, 0);
     }
 
     private void setPointLights(float[] lights, float[] colors){
@@ -550,7 +528,10 @@ public class Object3D extends SceneObject {
         return this.vertexBuffer.remaining();
     }
 
-   // public void setEyeLocation(SimpleVector eye){eyeLocation.x=eye.x;eyeLocation.y=eye.y;eyeLocation.z=eye.z;}
+    public void setObjectColor(SimpleVector e){
+        if(objectColor==null) objectColor = new SimpleVector();
+        objectColor.x=e.x;objectColor.y=e.y;objectColor.z=e.z;
+    }
 
     public void setVertexBuffer(FloatBuffer fb){
         vertexBuffer = fb;

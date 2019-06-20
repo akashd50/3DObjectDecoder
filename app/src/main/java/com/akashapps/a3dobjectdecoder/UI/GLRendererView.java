@@ -1,10 +1,15 @@
 package com.akashapps.a3dobjectdecoder.UI;
 
 import android.content.Context;
+
 import android.opengl.GLSurfaceView;
 import android.view.MotionEvent;
 
 import com.akashapps.a3dobjectdecoder.logic.TouchController;
+
+import javax.microedition.khronos.egl.EGL10;
+import javax.microedition.khronos.egl.EGLConfig;
+import javax.microedition.khronos.egl.EGLDisplay;
 
 public class GLRendererView extends GLSurfaceView{
     private static GLRenderer mRenderer;
@@ -13,20 +18,19 @@ public class GLRendererView extends GLSurfaceView{
     public GLRendererView(Context context, int objID){
         super(context);
         //setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
-        // Create an OpenGL ES 2.0 context
-        //setEGLContextClientVersion(2);
-        //utilities = new Utilities(context);
-
         touchController = new TouchController();
         this.setEGLContextClientVersion(3);
-        this.setEGLConfigChooser(8,8,8,8,24,8);
+        this.setEGLConfigChooser(8, 8, 8, 8,24,8);
+        //this.setEGLConfigChooser(true);
+
         int uiOptions = this.SYSTEM_UI_FLAG_FULLSCREEN;
         this.setSystemUiVisibility(uiOptions);
         /*this.setEGLConfigChooser(new GLSurfaceView.EGLConfigChooser() {
             public EGLConfig chooseConfig(EGL10 egl, EGLDisplay display) {
                 // Ensure that we get a 16bit framebuffer. Otherwise, we'll fall
                 // back to Pixelflinger on some device (read: Samsung I7500)
-                int[] attributes = new int[] { EGL10.EGL_DEPTH_SIZE, 16, EGL10.EGL_NONE };
+                int[] attributes = new int[] { EGL10.EGL_DEPTH_SIZE, 24, EGL10.EGL_RED_SIZE, 10,
+                        EGL10.EGL_BLUE_SIZE,10,EGL10.EGL_GREEN_SIZE,10, EGL10.EGL_NONE };
                 EGLConfig[] configs = new EGLConfig[1];
                 int[] result = new int[1];
                 egl.eglChooseConfig(display, attributes, configs, 1, result);
@@ -34,7 +38,6 @@ public class GLRendererView extends GLSurfaceView{
             }
         });*/
         mRenderer = new GLRenderer(context, touchController, objID);
-
         // Set the Renderer for drawing on the GLSurfaceView
         setRenderer(mRenderer);
     }

@@ -5,12 +5,12 @@ import android.opengl.GLES30;
 //import android.opengl.Matrix;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
-import android.util.Log;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 import com.akashapps.a3dobjectdecoder.objects.Camera;
+import com.akashapps.a3dobjectdecoder.objects.FrameBuffer;
 import com.akashapps.a3dobjectdecoder.objects.Light;
 import com.akashapps.a3dobjectdecoder.objects.LightingSystem;
 import com.akashapps.a3dobjectdecoder.objects.Object3D;
@@ -22,6 +22,8 @@ import com.akashapps.a3dobjectdecoder.objects.Quad2D;
 import com.akashapps.a3dobjectdecoder.logic.TouchController;
 import com.akashapps.a3dobjectdecoder.Utilities.*;
 import com.akashapps.a3dobjectdecoder.objects.Cube;
+
+import java.util.logging.SocketHandler;
 //import com.threed.jpct.*;
 //import com.threed.jpct.util.*;
 
@@ -53,14 +55,15 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     private static long currentFrameTime, previousFrameTime;
 
     public static boolean PAUSED = true;
-    private Camera camera;
+    private Camera camera, lightCamera;
     private LightingSystem lightingSystem;
 
     private int[] dispMapFBO, dispMap, dispRb, depthFBO, depthMap, depthRb;
-    private int shadowShaderProgram, quadProgram, quadDepthProgram, diffNSpec,refProgram, program, shadowObjectProgram;
+    private int quadProgram, quadDepthProgram, diffNSpec,depthShaderProgram, program, hdrQuadProgram, shadowObjectProgram,singleColorProgram;
     private Quad2D secondDisplay, shadowMap;
     Texture shadow, normal, container, rickuii;
-
+    FrameBuffer HDRdb, depthFrameBuffer;
+    private Object3D lightObject;
     public GLRenderer(Context ctx, TouchController controller, int objID) {
         this.context = ctx;
         this.controller = controller;
@@ -81,9 +84,9 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         scene = new Scene();
         scene.setCamera(camera);
         lightingSystem = new LightingSystem();
-        Light l = new Light(new SimpleVector(1f,4f,1f),new SimpleVector(1.0f,0.8f,1.0f),
-                new SimpleVector(0.5f,0.5f,0.5f), 0.1f);
-        l.setIntensity(5f);
+        Light l = new Light(new SimpleVector(3f,3f,2f),new SimpleVector(1.0f,0.8f,1.0f),
+                new SimpleVector(0.7f,0.7f,0.7f), 0.1f);
+        l.setIntensity(10f);
         lightingSystem.addLight(l);
 
         /*l = new Light(new SimpleVector(-0.5f,1f,7f),new SimpleVector(0f,1f,0f),
@@ -101,12 +104,13 @@ public class GLRenderer implements GLSurfaceView.Renderer {
 
 
         program = Shader.getPointLightProgram(1);
-        refProgram = Shader.generateShadersAndProgram(Shader.REFLECTVERTEXSHADER, Shader.REFLECTFRAGMENTSHADER);
         quadProgram = Shader.getQuadTextureProgram();
-        shadowShaderProgram = Shader.getShadowShaderProgram();
         quadDepthProgram = Shader.getQuadOrthoDepthTextureProgram();
         diffNSpec = Shader.getReflectShaderProgram(1);
-        shadowObjectProgram = Shader.getObjectWithShadowProgram(1);
+        shadowObjectProgram = Shader.getObjectWithShadowProgram(1, 1024);
+        singleColorProgram = Shader.getSingleColorShaderPorgram();
+        hdrQuadProgram = Shader.getHDRQuadTextureProgram();
+        depthShaderProgram = Shader.getDepthShaderProgram();
 
         rickuii = new Texture("multi", context, R.drawable.rickuii);
         container = new Texture("c", context, R.drawable.container_diff, R.drawable.container_spec_iii);
@@ -147,7 +151,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
                 cube = new Object3D(R.raw.container, context);
                 cube2 = new Object3D(R.raw.ground_i, context);
              //   cube3 = new Object3D(R.raw.gunmag_i, context);
-                cube.setShininess(2f);
+                cube.setShininess(4f);
                 cube2.setShininess(0.4f);
               //  cube3.setShininess(2f);
                 scene.addSceneObject(cube);
@@ -175,25 +179,28 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         }
 
 
-/*
-        cube.setRenderingPreferences(refProgram, Shader.METHOD_2);
-        cube2.setRenderingPreferences(refProgram, Shader.METHOD_2);
-        cube3.setRenderingPreferences(refProgram, Shader.METHOD_2);*/
-
         scene.setLightingSystem(lightingSystem);
-        secondDisplay = new Quad2D(1.0f,1.0f);
-        secondDisplay.setTextureUnit(normal);
-        secondDisplay.setRenderPreferences(quadProgram);
 
+        secondDisplay = new Quad2D(1.5f,1.0f);
         secondDisplay.setOpacity(1f);
-        secondDisplay.setDefaultTrans(1f,0.5f,0f);
+        secondDisplay.setDefaultTrans(1.2f,-0.5f,0f);
+        HDRdb.setQuadAndProperties(secondDisplay,hdrQuadProgram,FrameBuffer.ATTACHMENT_1);
 
-        shadowMap = new Quad2D(1.0f,1.0f);
-        shadowMap.setTextureUnit(shadow);
-        shadowMap.setRenderPreferences(quadDepthProgram);
-
+        shadowMap = new Quad2D(1.5f,1.0f);
         shadowMap.setOpacity(1f);
-        shadowMap.setDefaultTrans(-1f,-0.5f,0f);
+        shadowMap.setDefaultTrans(-1.2f,-0.5f,0f);
+        HDRdb.setQuadAndProperties(shadowMap,hdrQuadProgram,FrameBuffer.ATTACHMENT_2);
+        //depthFrameBuffer.setQuadAndProperties(shadowMap,quadDepthProgram,FrameBuffer.ATTACHMENT_1);
+
+        lightObject = new Object3D(R.raw.container, context);
+        lightObject.setObjectColor(new SimpleVector(1.0f,0.8f,1.0f));
+        lightObject.setLocation(new SimpleVector(3f,3f,2f));
+        lightObject.setLength(0.4f);
+        lightObject.setBredth(0.4f);
+        lightObject.setHeight(0.4f);
+        lightObject.setRenderingPreferences(singleColorProgram, Object3D.SINGLE_COLOR);
+        lightObject.setTextureOpacity(2.0f);
+        scene.addSceneObject(lightObject);
     }
 
     public void onDrawFrame(GL10 unused) {
@@ -201,57 +208,25 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         camera.updatePinchZoom();
         camera.updateView();
 
-        Matrix.setLookAtM(lightViewMatrix, 0,0f,5f, 2f,
-                0f,0f,0f,
-                0f, -1f, 0f);
-        Matrix.multiplyMM(lightMVPMatrix, 0, lightProjectionMatrix, 0, lightViewMatrix, 0);
-        lightingSystem.getLight(0).setLightMVPMatrix(lightMVPMatrix);
+        lightCamera.setPosition(new SimpleVector(3f,3f,2f));
+        lightCamera.updateView();
+        lightingSystem.getLight(0).setLightMVPMatrix(lightCamera.getMVPMatrix());
 
-        GLES30.glViewport(0,0,1024, 1024);
-        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, dispMapFBO[0]);
+        //scene.setRenderingPreferences(program, Object3D.LIGHTING_SYSTEM_SPEC);
 
-        GLES30.glClearColor(1f,1f,1f,1f);
-        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
-
-        GLES30.glEnable(GLES30.GL_DEPTH_TEST);
-        GLES30.glEnable(GLES30.GL_BLEND);
-
-        cube.setRenderingPreferences(diffNSpec, Object3D.DIFF_N_SPEC_MAP);
-        cube2.setRenderingPreferences(program, Object3D.LIGHTING_SYSTEM_SPEC);
-
-        scene.onDrawFrame(lightMVPMatrix,lightViewMatrix, new SimpleVector(-camera.getPosition().x, -camera.getPosition().y, -camera.getPosition().z));
-
-        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0);
-        normal.setTexture(dispMap);
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        GLES30.glViewport(0,0,1024, 1024);
-        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, depthFBO[0]);
 
-        GLES30.glClearColor(1f,1f,1f,1f);
-        GLES30.glEnable(GLES30.GL_DEPTH_TEST);
-        GLES30.glClear(GLES30.GL_DEPTH_BUFFER_BIT);
+        depthFrameBuffer.renderFrame(scene);
+        container.setShadowMapTexture(depthFrameBuffer.getTexture(FrameBuffer.ATTACHMENT_1));
+        rickuii.setShadowMapTexture(depthFrameBuffer.getTexture(FrameBuffer.ATTACHMENT_1));
 
-        GLES30.glPolygonOffset(1.0f,0.0f);
-        GLES30.glCullFace(GLES30.GL_FRONT);
-        GLES30.glEnable(GLES30.GL_POLYGON_OFFSET_FILL);
-        GLES30.glColorMask(false, false, false,false);
-
-        cube.depthMapRendering(shadowShaderProgram, lightMVPMatrix);
-        cube2.depthMapRendering(shadowShaderProgram, lightMVPMatrix);
-
-        //scene.onDrawFrame(lightMVPMatrix,lightViewMatrix, new SimpleVector(-camera.getPosition().x, -camera.getPosition().y, -camera.getPosition().z));
-        GLES30.glCullFace(GLES30.GL_BACK);
-        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0);
-        shadow.setTexture(depthMap);
-        container.setShadowMapTexture(depthMap);
-        rickuii.setShadowMapTexture(depthMap);
-
-        GLES30.glDisable(GLES30.GL_POLYGON_OFFSET_FILL);
-        GLES30.glColorMask(true, true, true, true);
-
+        //-----------------------
+        scene.setRenderingPreferences(program, Object3D.LIGHTING_SYSTEM_SPEC);
+        lightObject.setRenderingPreferences(singleColorProgram, Object3D.SINGLE_COLOR);
+        HDRdb.renderFrame(scene);
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         GLES30.glViewport(0,0,(int)WIDTH, (int)HEIGHT);
-        GLES30.glClearColor(1f,1f,1f,1f);
+        GLES30.glClearColor(0f,0f,0f,1f);
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
         if(ObjectID == 0) {
             if (controller.rotationalTurnY != 0) {
@@ -275,10 +250,12 @@ public class GLRenderer implements GLSurfaceView.Renderer {
                 controller.rotationTurnX = 0;
             }
         }
-        cube.setRenderingPreferences(shadowObjectProgram, Object3D.LIGHT_WITH_SHADOW);
-        cube2.setRenderingPreferences(shadowObjectProgram, Object3D.LIGHT_WITH_SHADOW);
+
+        scene.setRenderingPreferences(shadowObjectProgram, Object3D.LIGHT_WITH_SHADOW);
+        lightObject.setRenderingPreferences(singleColorProgram, Object3D.SINGLE_COLOR);
 
         scene.onDrawFrame(camera.getMVPMatrix(),camera.getViewMatrix(), new SimpleVector(-camera.getPosition().x, -camera.getPosition().y, -camera.getPosition().z));
+        lightObject.onDrawFrame(camera.getMVPMatrix(),camera.getViewMatrix(), new SimpleVector(-camera.getPosition().x, -camera.getPosition().y, -camera.getPosition().z));
         GLES30.glDisable(GLES30.GL_DEPTH_TEST);
         customUIDrawing();
 
@@ -292,8 +269,10 @@ public class GLRenderer implements GLSurfaceView.Renderer {
                 0.0f, 0.0f, 0.0f,
                 0f, 1.0f, 0.0f);
         android.opengl.Matrix.multiplyMM(uiMVPMatrix, 0, uiProjectionMatrix, 0, uiViewMatrix, 0);
-        secondDisplay.draw(uiMVPMatrix);
-        shadowMap.draw(uiMVPMatrix);
+        //secondDisplay.draw(uiMVPMatrix);
+        HDRdb.onDrawFrame(uiMVPMatrix);
+        //depthFrameBuffer.onDrawFrame(uiMVPMatrix);
+        //shadowMap.draw(uiMVPMatrix);
         //drawText("FPS: "+FPS, new SimpleVector(-1.6f,0.8f,2f), uiMVPMatrix);
         float[] color = {1.0f,1.0f,0f,1f};
         textDecoder.drawText("FPS: "+FPS,new SimpleVector(-1.0f,0.8f,2f),new SimpleVector(1.0f,1.0f,1f),uiMVPMatrix, color);
@@ -305,73 +284,33 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         float ratio = (float) width / height;
         camera = new Camera();
         camera.setTouchController(controller);
+        lightCamera = new Camera();
 
-        Matrix.perspectiveM(mProjectionMatrix, 0, 45f, ratio, 1, 100);
-        //Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 3, 10);
         Matrix.orthoM(uiProjectionMatrix, 0, -ratio, ratio, -1, 1, 1, 10);
-
-        //Matrix.orthoM(lightProjectionMatrix, 0, -10, 10, -10,10,1,10);
-        Matrix.perspectiveM(lightProjectionMatrix, 0, 45f, ratio, 1, 30);
-
-        GLES30.glEnable( GLES30.GL_DEPTH_TEST );
-        GLES30.glDepthFunc( GLES30.GL_LESS );
-        GLES30.glEnable(GLES30.GL_CULL_FACE);
-        iniliazeUIElements();
-
+        Matrix.perspectiveM(mProjectionMatrix, 0, 45f, ratio, 1, 100);
         camera.setMatrices(new float[16],mProjectionMatrix,new float[16]);
         camera.setPosition(new SimpleVector(0f,0f,5f));
         camera.lookAt(new SimpleVector(0f,0f,0f));
         camera.setFollowSpeed(new SimpleVector(0.04f,0f,0f));
         camera.setFollowDelay(new SimpleVector(1.5f,0f,0f));
 
-        dispMapFBO = new int[1];
-        dispMap = new int[1];
-        dispRb = new int[1];
-        GLES30.glGenFramebuffers(1, dispMapFBO, 0);
-        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, dispMapFBO[0]);
+        Matrix.orthoM(lightProjectionMatrix, 0, -10, 10, -10,10,1,10);
+        //Matrix.perspectiveM(lightProjectionMatrix, 0, 45f, ratio, 1, 30);
+        lightCamera.setMatrices(new float[16], lightProjectionMatrix, new float[16]);
+        lightCamera.setPosition(new SimpleVector(0f,0f,5f));
+        lightCamera.lookAt(new SimpleVector(0f,0f,0f));
 
-        GLES30.glGenTextures(1, dispMap,0);
-        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, dispMap[0]);
+        GLES30.glEnable( GLES30.GL_DEPTH_TEST );
+        GLES30.glDepthFunc( GLES30.GL_LESS );
+        GLES30.glEnable(GLES30.GL_CULL_FACE);
 
-        GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA4, 1024, 1024, 0, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, null);
-        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_LINEAR);
-        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_LINEAR);
-        GLES30.glFramebufferTexture2D(GLES30.GL_FRAMEBUFFER, GLES30.GL_COLOR_ATTACHMENT0, GLES30.GL_TEXTURE_2D, dispMap[0],0);
+        HDRdb = new FrameBuffer(FrameBuffer.BLOOM,1080, 720);
+        HDRdb.setFrameCamera(camera);
 
-        GLES30.glGenRenderbuffers(1, dispRb, 0);
-        GLES30.glBindRenderbuffer(GLES30.GL_RENDERBUFFER, dispRb[0]);
-        GLES30.glRenderbufferStorage(GLES30.GL_RENDERBUFFER, GLES30.GL_DEPTH24_STENCIL8, 1024, 1024);
-        GLES30.glFramebufferRenderbuffer(GLES30.GL_FRAMEBUFFER, GLES30.GL_DEPTH_STENCIL_ATTACHMENT, GLES30.GL_RENDERBUFFER, dispRb[0]);
+        depthFrameBuffer = new FrameBuffer(FrameBuffer.DEPTH_MAP, 1024,1024);
+        depthFrameBuffer.setFrameCamera(lightCamera);
 
-        int status = GLES30.glCheckFramebufferStatus(GLES30.GL_FRAMEBUFFER);
-
-        if(status != GLES30.GL_FRAMEBUFFER_COMPLETE) {
-            Log.d("FBORenderer", "Framebuffer incomplete. Status: " + status);
-            throw new RuntimeException("Error creating FBO");
-        }
-        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER,0);
-
-
-        depthFBO = new int[1];
-        depthMap = new int[1];
-        depthRb = new int[1];
-
-        GLES30.glGenFramebuffers(1, depthFBO, 0);
-        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, depthFBO[0]);
-
-        GLES30.glGenTextures(1, depthMap,0);
-        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, depthMap[0]);
-        GLES30.glTexStorage2D(GLES30.GL_TEXTURE_2D, 1, GLES30.GL_DEPTH_COMPONENT24, 1024, 1024);
-
-        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_NEAREST);
-        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_NEAREST);
-        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_S, GLES30.GL_CLAMP_TO_EDGE);
-        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_T, GLES30.GL_CLAMP_TO_EDGE);
-        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_COMPARE_FUNC, GLES30.GL_LEQUAL);
-        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_COMPARE_MODE, GLES30.GL_COMPARE_REF_TO_TEXTURE);
-        GLES30.glFramebufferTexture2D(GLES30.GL_FRAMEBUFFER, GLES30.GL_DEPTH_ATTACHMENT, GLES30.GL_TEXTURE_2D, depthMap[0],0);
-
-        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER,0);
+        iniliazeUIElements();
 
         PAUSED = false;
     }

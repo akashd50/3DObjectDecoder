@@ -80,21 +80,22 @@ public class AnimatedObject extends SceneObject{
         }*/
     }
 
-    public void onDrawFrame2(float[] mMVPMatrix, float[] VIEW_MATRIX, SimpleVector eyeLocation){
+    public void onDrawFrame(float[] mMVPMatrix, float[] VIEW_MATRIX, SimpleVector eyeLocation){
         //gravity
-        firstObject.updateLocation(new SimpleVector(super.horizontalAcc,super.verticalAcc,0f));
+        if(firstObject.getDrawMethod()!=Object3D.DEPTH_MAP) {
+            firstObject.updateLocation(new SimpleVector(super.horizontalAcc, super.verticalAcc, 0f));
 
-        if (currentlyPlayingAnimation != null) {
-            if (currentlyPlayingAnimation.isFinished()) {
-                firstObject.setVertexBuffer(activePose.getPose());
+            if (currentlyPlayingAnimation != null) {
+                if (currentlyPlayingAnimation.isFinished()) {
+                    firstObject.setVertexBuffer(activePose.getPose());
 
-                currentlyPlayingAnimation.resetAnimation();
+                    currentlyPlayingAnimation.resetAnimation();
 
-                currentlyPlayingAnimation = null;
-                currentlyPlaying = 999;
+                    currentlyPlayingAnimation = null;
+                    currentlyPlaying = 999;
 
-                firstObject.onDrawFrame(mMVPMatrix, VIEW_MATRIX, eyeLocation);
-            } else {
+                    firstObject.onDrawFrame(mMVPMatrix, VIEW_MATRIX, eyeLocation);
+                } else {
                /* if(currentlyPlayingAnimation.isIndeterminate()) {
                     firstObject.resetVertexBufferTD();
                     currentlyPlayingAnimation.resetAnimation();
@@ -102,19 +103,22 @@ public class AnimatedObject extends SceneObject{
                     currentlyPlaying = 0;
                     firstObject.onDrawFrame(mMVPMatrix);
                 }else{*/
-                //if(currentlyPlayingAnimation!=null) {
-                //if(frameNum==0) {
+                    //if(currentlyPlayingAnimation!=null) {
+                    //if(frameNum==0) {
                     firstObject.setVertexBuffer(currentlyPlayingAnimation.getNextFrame());
-                //    frameNum++;
-              //  }else if(frameNum<frameWaitItr){
-             //       frameNum++;
-              //  }else if(frameNum>=frameWaitItr){
-             //       frameNum=0;
-                //}
-                // }
+                    //    frameNum++;
+                    //  }else if(frameNum<frameWaitItr){
+                    //       frameNum++;
+                    //  }else if(frameNum>=frameWaitItr){
+                    //       frameNum=0;
+                    //}
+                    // }
+                    firstObject.onDrawFrame(mMVPMatrix, VIEW_MATRIX, eyeLocation);
+                    // animate(mMVPMatrix);
+                    //}
+                }
+            } else {
                 firstObject.onDrawFrame(mMVPMatrix, VIEW_MATRIX, eyeLocation);
-                // animate(mMVPMatrix);
-                //}
             }
         }else{
             firstObject.onDrawFrame(mMVPMatrix, VIEW_MATRIX, eyeLocation);
@@ -122,7 +126,7 @@ public class AnimatedObject extends SceneObject{
 
     }
 
-    public void onDrawFrame(float[] mMVPMatrix,float[] VIEW_MATRIX, SimpleVector eyeLocation){
+    /*public void onDrawFrame(float[] mMVPMatrix,float[] VIEW_MATRIX, SimpleVector eyeLocation){
         //gravity
         firstObject.updateLocation(new SimpleVector(super.horizontalAcc,super.verticalAcc,0f));
 
@@ -134,13 +138,13 @@ public class AnimatedObject extends SceneObject{
                 currentlyPlaying =999;
                 firstObject.onDrawFrame(mMVPMatrix, VIEW_MATRIX, eyeLocation);
             } else {
-               /* if(currentlyPlayingAnimation.isIndeterminate()) {
+               *//* if(currentlyPlayingAnimation.isIndeterminate()) {
                     firstObject.resetVertexBufferTD();
                     currentlyPlayingAnimation.resetAnimation();
                     currentlyPlayingAnimation = null;
                     currentlyPlaying = 0;
                     firstObject.onDrawFrame(mMVPMatrix);
-                }else{*/
+                }else{*//*
                     //if(currentlyPlayingAnimation!=null) {
                     firstObject.setVertexBuffer(currentlyPlayingAnimation.getNextFrame());
                    // }
@@ -153,7 +157,7 @@ public class AnimatedObject extends SceneObject{
         }
 
     }
-
+*/
     public void setLength(float f){
         firstObject.setLength(f);
     }
@@ -280,4 +284,8 @@ public class AnimatedObject extends SceneObject{
         return res;
     }
 
+    @Override
+    public void setRenderingPreferences(int program, int objType) {
+        firstObject.setRenderingPreferences(program,objType);
+    }
 }

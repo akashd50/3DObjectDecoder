@@ -135,6 +135,28 @@ public class Quad2D {
     public void setTextureUnit(Texture t){
         this.textureUnit = t;
     }
+    public void invert(){
+        float v1[] = {0f, 0f, 0f,
+                0f - (l / 2), 0f - (h / 2), 0f,
+                0f + (l / 2), 0f - (h / 2), 0f,
+                0f + (l / 2), 0f + (h / 2), 0f,
+                0f - (l / 2), 0f + (h / 2), 0f,
+                0f - (l / 2), 0f - (h / 2), 0f};
+
+        float[] textureCoords = {0.5f, 0.5f,
+                0f, 0.0f,
+                1f, 0.0f,
+                1f, 1.0f,
+                0f, 1.f,
+                0f, 0.0f};
+
+        vertexBuffer.clear();
+        mTextureBuffer.clear();
+        vertexBuffer.put(v1);
+        mTextureBuffer.put(textureCoords);
+        vertexBuffer.position(0);
+        mTextureBuffer.position(0);
+    }
     public void changeTransform(float x,float y,float z){
         transformX = x;
         transformY = y;

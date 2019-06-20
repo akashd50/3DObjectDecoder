@@ -40,7 +40,8 @@ public abstract class SceneObject {
     public abstract void rotateX(float x);
     public abstract void rotateY(float x);
     public abstract void rotateZ(float x);
-    public void follow(SceneObject s){
+    public abstract void setRenderingPreferences(int program, int objType);
+        public void follow(SceneObject s){
         this.followingObject = s;
     }
     public abstract void setLightingSystem(LightingSystem lightingSystem);

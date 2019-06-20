@@ -45,7 +45,7 @@ public class ActivityHome extends AppCompatActivity {
                     case R.id.object_decoder_button_main:
                         ArrayAdapter<String> ap = new ArrayAdapter<String>(ActivityHome.this, R.layout.list_textbox);
                         ap.add("Rick's Spaceship");
-                        ap.add("Simple Gun");
+                        ap.add("Box with Shadow");
                         AlertDialog.Builder ad = new AlertDialog.Builder(ActivityHome.this).setAdapter(ap, new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {

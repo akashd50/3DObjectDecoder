@@ -362,7 +362,7 @@ public class Shader {
 
                 "vec3 getAmbientLighting()" +
                 "{" +
-                    "return vec3(0.1,0.1,0.1);" +
+                    "return vec3(0.3,0.3,0.3);" +
                 "}" +
 
                 "vec3 getDirectionalLighting()" +
@@ -379,12 +379,12 @@ public class Shader {
                         "toPointLight = normalize(toPointLight);" +
 
                             "vec3 inv_light = vec3(0) - toPointLight;"+
-                            "vec3 lightReflectionDirection = reflect(inv_light, eyeSpaceNormal);"+
+                            //"vec3 lightReflectionDirection = reflect(inv_light, eyeSpaceNormal);"+
                             /*"float ref = pow(max(0.0, dot(viewDir, lightReflectionDirection)),shininess);"+*/
                             //"float ref = max(0.0, dot(viewDir, lightReflectionDirection))*shininess;"+
                            // "var_specular += u_PointLightSpecular[i]*ref;"+
                             "vec3 halfwayDir = normalize(toPointLight + viewDir);"+
-                            "float ref = max(0.0, dot(viewDir, halfwayDir))*shininess;"+
+                            "float ref = pow(max(0.0, dot(viewDir, halfwayDir)),shininess)/distance;"+
                             "var_specular += u_PointLightSpecular[i]*ref;"+
 
                         "float cosine = max(dot(eyeSpaceNormal, toPointLight), 0.0);" +
@@ -406,7 +406,11 @@ public class Shader {
                 "vec4 diff = vec4(var_diffuse, v_opacity)*texture2D(u_TextureUnit, v_TextureCoordinates) + vec4(var_ambient, v_opacity)*texture2D(u_TextureUnit, v_TextureCoordinates);"+
                 "vec4 spec = vec4(var_specular, 1.0)*texture2D(u_TextureUnit, v_TextureCoordinates);"+
 
-                "gl_FragColor =  diff + spec;" +
+                "float gamma = 0.9;"+
+                "vec3 gammaMapped = pow(vec3(diff+spec),vec3(1.0/gamma));"+
+                "gl_FragColor = vec4(gammaMapped,1.0);"+
+
+                //"gl_FragColor =  diff + spec;" +
                 "}";
         return generateShadersAndProgram(vtx, frg);
     }
@@ -496,7 +500,7 @@ public class Shader {
                                 "float ref = max(0.0, dot(viewDir, lightReflectionDirection))*shininess;"+*/
 
                                 "vec3 halfwayDir = normalize(toPointLight + viewDir);"+
-                                "float ref = max(0.0, dot(viewDir, halfwayDir))*shininess;"+
+                                "float ref = pow(max(0.0, dot(viewDir, halfwayDir)),shininess)/distance;"+
 
                                 "var_specular += u_PointLightSpecular[i]*ref;"+
 
@@ -520,14 +524,14 @@ public class Shader {
                         "void main()" +
                         "{" +
                             "vec4 diff = vec4(var_diffuse, 1.0)*texture2D(u_TextureUnit, v_TextureCoordinates) + vec4(var_ambient, 1.0)*texture2D(u_TextureUnit, v_TextureCoordinates);"+
-                            "vec4 spec = vec4(var_specular, 1.0)*texture2D(u_SpecularUnit, v_TextureCoordinates);"+
+                            "vec4 spec = vec4(var_specular, 1.0)* vec4(vec3(texture2D(u_SpecularUnit, v_TextureCoordinates).r),1.0);"+
                             "gl_FragColor = diff+spec;" +
                         "}";
         return generateShadersAndProgram(vertex, fragment);
     }
 
 
-    public static int getObjectWithShadowProgram(int numLights){
+    public static int getObjectWithShadowProgram(int numLights, int shadowMapSize){
 
         String vertex =
                         "uniform mat4 u_Matrix;" +
@@ -561,7 +565,7 @@ public class Shader {
         String fragment =
                         "precision mediump float;" +
                         "uniform sampler2D u_TextureUnit;" +
-                        "uniform sampler2D u_SpecularUnit;" +
+                        //"uniform sampler2D u_SpecularUnit;" +
                         "uniform sampler2D shadowMap;" +//--------------------NEW--------------
                         "uniform float v_opacity;"+
 
@@ -602,7 +606,7 @@ public class Shader {
                             "float bias = max(0.05*(1.0 - dot(eyeSpaceNormal, toPointLight)),0.005);"+
                             "float shadow = 0.0;"+
 
-                            "vec2 texelSize = 1.0/vec2(1024.0,1024.0);"+
+                            "vec2 texelSize = 1.0/vec2("+shadowMapSize+","+shadowMapSize+");"+
                             "for(int x = -1; x <= 1; ++x)" +
                             "{" +
                                 "for(int y = -1; y <= 1; ++y)" +
@@ -623,14 +627,25 @@ public class Shader {
                             "var_diffuse  = getDirectionalLighting();" +
                             "var_diffuse += getPointLighting();"+
                             "float shadow = shadowCalculation(lightSpacePosition);"+
-                            "vec4 diff = (1.0 - shadow) * vec4(var_diffuse, 1.0)*texture2D(u_TextureUnit, v_TextureCoordinates) + vec4(var_ambient, 1.0)*texture2D(u_TextureUnit, v_TextureCoordinates);"+
-                            "vec4 spec = (1.0 - shadow) * vec4(var_specular, 1.0)*texture2D(u_SpecularUnit, v_TextureCoordinates);"+
-                            "gl_FragColor = diff+spec;" +
+                            "vec4 diff = (1.0 - shadow) * vec4(var_diffuse, 1.0)*texture2D(u_TextureUnit, v_TextureCoordinates);"+
+                            "vec4 amb = vec4(var_ambient, 1.0)*texture2D(u_TextureUnit, v_TextureCoordinates);"+
+                            "vec4 spec = (1.0 - shadow) * vec4(var_specular, 1.0)*texture2D(u_TextureUnit, v_TextureCoordinates);"+
+
+                            "float gamma = 0.9;" +
+                            "vec4 cVal;"+
+                           "if(shadow>0.7)" +
+                            "{"+
+                                "cVal = diff+spec+amb;" +
+                            "}else{"+
+                                "cVal = diff+spec;" +
+                            "}" +
+                            "vec3 gammaMapped = pow(vec3(cVal),vec3(1.0/gamma));"+
+                            "gl_FragColor = vec4(gammaMapped,1.0);"+
                         "}"+
 
                         "vec3 getAmbientLighting()" +
                         "{" +
-                            "return vec3(0.3,0.3,0.3);" +
+                            "return vec3(0.2,0.2,0.2);" +
                         "}" +
 
                         "vec3 getDirectionalLighting()" +
@@ -659,7 +674,7 @@ public class Shader {
         return generateShadersAndProgram(vertex, fragment);
     }
 
-    public static int getShadowShaderProgram(){
+    public static int getDepthShaderProgram(){
         String vertex =
                         "uniform mat4 u_Matrix;" +
                         //"uniform mat4 model;"+
@@ -692,13 +707,55 @@ public class Shader {
                         "}";
 
         String fragment =
-                "precision mediump float;" +
+                        "precision mediump float;" +
                         "uniform sampler2D u_TextureUnit;" +
                         "varying vec2 v_TextureCoordinates;" +
                         "uniform float opacity;"+
                         "void main()" +
                         "{" +
                             "gl_FragColor = opacity * texture2D(u_TextureUnit, v_TextureCoordinates);" +
+                        "}";
+
+        return generateShadersAndProgram(vertex, fragment);
+    }
+
+    public static int getHDRQuadTextureProgram(){
+        String vertex =
+                        "#version 300 es\n"+
+                        "uniform mat4 u_Matrix;" +
+                        "in vec4 a_Position;" +
+                        "in vec2 a_TextureCoordinates;" +
+                        "out vec2 v_TextureCoordinates;" +
+                        "void main()" +
+                        "{" +
+                        "v_TextureCoordinates = a_TextureCoordinates;" +
+                        "gl_Position = u_Matrix * a_Position;" +
+                        "}";
+
+        String fragment =
+                        "#version 300 es\n"+
+                        "precision mediump float;" +
+                        "uniform sampler2D u_TextureUnit;" +
+                        "uniform float opacity;"+
+                        "in vec2 v_TextureCoordinates;" +
+                        "layout (location=0) out vec4 gl_FragColor;"+
+                        "layout (location=1) out vec4 brightColor;"+
+                        "void main()" +
+                        "{" +
+                            "float exposure = 1.0;" +
+                            "const float gamma = 0.6;" +
+                            "vec4 fColor = texture(u_TextureUnit, v_TextureCoordinates);"+
+                            "vec3 hdrColor = vec3(fColor);" +
+                            "vec3 mapped = hdrColor / (hdrColor + vec3(1.0));" +
+
+                                //"brightColor = fColor;"+
+                            "float brightness = dot(fColor.rgb,vec3(0.2126,0.7152,0.0722));"+
+                            "if(brightness>1.0){ brightColor = vec4(vec3(fColor),1.0); }"+
+                            "else { brightColor = vec4(0.0,0.0,0.0,1.0); }"+
+                            //"vec3 mapped = vec3(1.0) - exp(-hdrColor*exposure);" +
+                            "mapped = pow(mapped, vec3(1.0 / gamma));" +
+
+                            "gl_FragColor = vec4(mapped, 1.0);" +
                         "}";
 
         return generateShadersAndProgram(vertex, fragment);
@@ -743,7 +800,7 @@ public class Shader {
                         "}";
 
         String fragment =
-                "precision mediump float;" +
+                        "precision mediump float;" +
                         "uniform sampler2D u_TextureUnit;" +
                         "varying vec2 v_TextureCoordinates;" +
                         "uniform float opacity;"+
@@ -762,6 +819,29 @@ public class Shader {
 
         return generateShadersAndProgram(vertex, fragment);
     }
+    public static int getSingleColorShaderPorgram(){
+        String vertex =
+                        "#version 300 es\n"+
+                        "uniform mat4 u_Matrix;" +
+                        "in vec4 a_Position;" +
+                        "void main()" +
+                        "{" +
+                            "gl_Position = u_Matrix * a_Position;" +
+                        "}";
+
+        String fragment ="#version 300 es\n"+
+                        "precision mediump float;" +
+                        "uniform float v_opacity;"+
+                        "uniform vec3 color;"+
+                        "layout (location = 0) out vec4 gl_FragColor;"+
+                        "void main()" +
+                        "{" +
+                            "gl_FragColor = vec4(color,v_opacity);"+
+                        "}";
+
+        return generateShadersAndProgram(vertex, fragment);
+    }
+
 
     public static int generateShadersAndProgram(String vs, String fs){
         int vertexShad = loadShader(GLES30.GL_VERTEX_SHADER,

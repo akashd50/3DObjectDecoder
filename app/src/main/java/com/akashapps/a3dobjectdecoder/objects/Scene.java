@@ -86,4 +86,12 @@ public class Scene {
             s.setLightingSystem(this.lightingSystem);
         }
     }
+    public void setRenderingPreferences(int program, int objType){
+        for(SceneObject s: objects){
+            s.setRenderingPreferences(program,objType);
+        }
+    }
+    public ArrayList<SceneObject> getObjects(){
+        return this.objects;
+    }
 }
