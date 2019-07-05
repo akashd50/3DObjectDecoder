@@ -84,6 +84,10 @@ public class Texture {
     public void setTexture(int[] t){
         this.textureID[0] = t[0];
     }
+    public void setSpecularTexture(int[] t){
+        this.specularTextureID[0] = t[0];
+    }
+
     public void setShadowMapTexture(int[] t){
         if(shadowMapID==null){shadowMapID = new int[1];}
         this.shadowMapID = t;}

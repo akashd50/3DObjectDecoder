@@ -49,9 +49,9 @@ public class DPad extends Controller{
         int quadProgram = Shader.getQuadTextureProgram();
         icon = new Quad2D(scale,scale);
         background = new Quad2D(scale*2,scale*2);
-        icon.setRenderPreferences(quadProgram);
+        icon.setRenderPreferences(quadProgram, Quad2D.REGULAR);
         icon.setTextureUnit(t1);
-        background.setRenderPreferences(quadProgram);
+        background.setRenderPreferences(quadProgram, Quad2D.REGULAR);
         background.setTextureUnit(t2);
 
         icon.setOpacity(1.0f);
@@ -59,6 +59,8 @@ public class DPad extends Controller{
 
         background.setDefaultTrans(center.x,center.y,center.z+2f);
         icon.setDefaultTrans(center.x,center.y,center.z+2.5f);
+
+        cID = Controller.getNextID();
     }
 
     public void onDrawFrame(float[] mMVPMatrix){
@@ -66,12 +68,12 @@ public class DPad extends Controller{
         icon.draw(mMVPMatrix);
     }
 
-    public void onTouchDown(MotionEvent event, int id){
-        int index = event.findPointerIndex(id);
+    public void onTouchDown(MotionEvent event){
+        int index = event.getActionIndex();
        if(icon.isClicked(event.getX(index),event.getY(index))){
             this.isClicked = true;
             super.activeMotionEvent = event;
-           activeMEId = id;
+           activeMEId = event.getPointerId(index);
         }
     }
 
@@ -98,13 +100,7 @@ public class DPad extends Controller{
                     //dPad.changeTrasnformX(tempX);
 
                 }
-                //dPad.changeTrasnformX(getCircularX(x,y));
-                //dPad.changeTrasnformY(getCircularY(x,y));
                 this.setAngularTransforms(tempX, tempY);
-
-            /*if(x<dPadBack.getRight() && x>dPadBack.getLeft()) {
-                dPad.changeTrasnformX(tempX);
-            }*/
 
                 if (icon.getTransformX() > background.getDefaultX()) {
                     currDirHor = DPAD_DIR_R;

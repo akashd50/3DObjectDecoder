@@ -20,21 +20,23 @@ import static android.opengl.GLES30.GL_ONE_MINUS_SRC_ALPHA;
 import static android.opengl.GLES30.GL_SRC_ALPHA;
 
 public class Quad2D {
-    private Texture textureUnit;
-    protected Bitmap bitmap;
-    private FloatBuffer mTextureBuffer;
-    protected float l,h, transformY,transformX,transformZ, scaleX,scaleY;
-    private float defTransX,defTransY, defTransZ;
-    private FloatBuffer vertexBuffer;
-    private int mProgram;
-    private int vertexCount;
-
     private static final int COORDS_PER_VERTEX = 3;
     private static int vertexStride = (COORDS_PER_VERTEX )* 4; // 4 bytes per vertex
 
-    private int mMVPMatrixHandle, aTextureHandle, textureUniform, mPositionHandle;
+    public static final int REGULAR = 1002;
+    public static final int BLUR = 1001;
+    public static final int BLEND = 1003;
+
+    private Texture textureUnit;
+    protected Bitmap bitmap;
+    protected float l,h, transformY,transformX,transformZ, scaleX,scaleY;
+    private float defTransX,defTransY, defTransZ;
+    private FloatBuffer mTextureBuffer,vertexBuffer;
+    private int renderType, mProgram, vertexCount, mMVPMatrixHandle, aTextureHandle, textureUniform, mPositionHandle;
     public float rotateX,rotateY,rotateZ, defRotX, defRotY, defRotZ;
     public boolean active;
+
+    private boolean horizontalBlur;
     private float opacity;
 
     public Quad2D(float l, float h) {
@@ -82,15 +84,13 @@ public class Quad2D {
     private void drawHelper(float[] mMVPMatrix){
 
         GLES30.glUseProgram(mProgram);
-        // get handle to shape's transformation matrix
         mMVPMatrixHandle = GLES30.glGetUniformLocation(mProgram, "u_Matrix");
-        // Pass the projection and view transformation to the shader
         GLES30.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, mMVPMatrix, 0);
 
         textureUniform = GLES30.glGetUniformLocation(mProgram,"u_TextureUnit");
+        GLES30.glUniform1i(textureUniform, 0);
         GLES30.glActiveTexture(GLES30.GL_TEXTURE0);
         GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, textureUnit.getTexture());
-        GLES30.glUniform1i(textureUniform, 0);
 
         int opu = GLES30.glGetUniformLocation(mProgram, "opacity");
         GLES30.glUniform1f(opu, opacity);
@@ -105,6 +105,19 @@ public class Quad2D {
         aTextureHandle = GLES30.glGetAttribLocation(mProgram,"a_TextureCoordinates");
         GLES30.glVertexAttribPointer(aTextureHandle,2,GLES30.GL_FLOAT,false,8,mTextureBuffer);
         GLES30.glEnableVertexAttribArray(aTextureHandle);
+
+        if(renderType == BLUR){
+            int horizontal = GLES30.glGetUniformLocation(mProgram, "horizontal");
+            if(horizontalBlur) GLES30.glUniform1f(horizontal, 1.0f);
+            else GLES30.glUniform1i(horizontal, 0);
+        }
+
+        if(renderType == BLEND){
+            int tu2 = GLES30.glGetUniformLocation(mProgram,"u_TextureUnit2");
+            GLES30.glUniform1i(tu2, 1);
+            GLES30.glActiveTexture(GLES30.GL_TEXTURE1);
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, textureUnit.getSpecularTexture());
+        }
 
         GLES30.glEnable( GL_BLEND );
         GLES30.glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
@@ -129,12 +142,15 @@ public class Quad2D {
         drawHelper(scratch);
     }
 
-    public void setRenderPreferences(int prog){
+    public void setRenderPreferences(int prog, int type){
         mProgram = prog;
+        this.renderType = type;
     }
+    public void setTexture(int[] texture){this.textureUnit.setTexture(texture);}
     public void setTextureUnit(Texture t){
         this.textureUnit = t;
     }
+
     public void invert(){
         float v1[] = {0f, 0f, 0f,
                 0f - (l / 2), 0f - (h / 2), 0f,
@@ -271,6 +287,10 @@ public class Quad2D {
         defRotY = y;
         defRotZ = z;
     }
+    public Texture getTextureUnit(){return this.textureUnit;}
+
+    public boolean getHorizontalBlur(){return this.horizontalBlur;}
+    public void setHorizontalBlur(boolean h){this.horizontalBlur = h;}
     public float getLength(){return this.l;}
     public float getHeight(){return this.h;}
 }

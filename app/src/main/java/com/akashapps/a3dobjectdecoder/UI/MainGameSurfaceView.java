@@ -38,10 +38,6 @@ public class MainGameSurfaceView extends GLSurfaceView {
 
     }
 
-    public void onStop(){
-        mRenderer.onStop();
-    }
-
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         switch(event.getActionMasked()){
@@ -67,5 +63,9 @@ public class MainGameSurfaceView extends GLSurfaceView {
                 break;
         }
         return true;
+    }
+
+    public void onBackPressed() {
+        mRenderer.onBackPressed();
     }
 }

@@ -10,11 +10,12 @@ public class Button extends Controller {
     private Quad2D buttonIcon;
     private SimpleVector dimensions, location;
     private boolean isClicked, wasClicked;
+    private long eventDownTime;
     public Button(int resId, SimpleVector dimensions, Context c){
         Texture t1 = new Texture("loadT", c, resId);
         int quadProgram = Shader.getQuadTextureProgram();
         buttonIcon = new Quad2D(dimensions.x, dimensions.y);
-        buttonIcon.setRenderPreferences(quadProgram);
+        buttonIcon.setRenderPreferences(quadProgram, Quad2D.REGULAR);
         buttonIcon.setTextureUnit(t1);
 
         location = new SimpleVector(0f,0f,0f);
@@ -22,6 +23,8 @@ public class Button extends Controller {
         isClicked = false;
         wasClicked = false;
         buttonIcon.setOpacity(1.0f);
+
+        cID = Controller.getNextID();
     }
 
     @Override
@@ -30,12 +33,14 @@ public class Button extends Controller {
     }
 
     @Override
-    public void onTouchDown(MotionEvent event, int id) {
-        int index = event.findPointerIndex(id);
-        if(buttonIcon.isClicked(event.getX(index),event.getY(index))){
+    public void onTouchDown(MotionEvent event) {
+        int index = event.getActionIndex();
+        if(index!=-1 && buttonIcon.isClicked(event.getX(index),event.getY(index))){
             isClicked = true;
             this.activeMotionEvent = event;
-            activeMEId = id;
+            activeMEId = event.getPointerId(index);
+            eventDownTime = System.currentTimeMillis();
+            if(listener!=null) listener.onTouchDown();
         }else{
             isClicked = false;
         }
@@ -43,22 +48,23 @@ public class Button extends Controller {
 
     @Override
     public void onTouchMove(MotionEvent event) {
-
+        if(listener!=null) listener.onTouchMove();
     }
 
     @Override
     public void onTouchUp(MotionEvent event) {
         int index = event.getActionIndex();
         if(index!=-1) {
-            if (buttonIcon.isClicked(event.getX(index), event.getY(index))) {
+            if (buttonIcon.isClicked(event.getX(index), event.getY(index)) && !isLongPressed()) {
                 isClicked = false;
                 activeMotionEvent = null;
                 wasClicked = true;
+                if(listener!=null) listener.onTouchUp();
             }
         }else{
             isClicked = false;
             activeMotionEvent = null;
-            wasClicked = true;
+            wasClicked = false;
         }
     }
 
@@ -76,5 +82,11 @@ public class Button extends Controller {
 
     public SimpleVector getLocation() {
         return location;
+    }
+
+    public boolean isLongPressed(){
+        if(activeMotionEvent!=null && System.currentTimeMillis() - eventDownTime > 1000){
+            return true;
+        }else return false;
     }
 }

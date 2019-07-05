@@ -8,10 +8,8 @@ import java.util.ArrayList;
 public class SceneControlHandler {
     private ArrayList<Controller> controllers;
     private TouchController touchController;
-    private int pointerIndex;
     public SceneControlHandler(TouchController tc){
         touchController = tc;
-        pointerIndex = -1;
         controllers = new ArrayList<>();
     }
 
@@ -26,24 +24,14 @@ public class SceneControlHandler {
     }
 
     public void onTouchDown(MotionEvent event){
-        if(pointerIndex==-1){
-            pointerIndex=0;
-        }else{
-            pointerIndex++;
-        }
         for(Controller c: controllers){
-            c.onTouchDown(event, event.getPointerId(event.getActionIndex()));
+            c.onTouchDown(event);
         }
     }
 
     public void onTouchUp(MotionEvent event){
         for(Controller c: controllers){
             c.onTouchUp(event);
-        }
-        if(pointerIndex==0){
-            pointerIndex=-1;
-        }else{
-            pointerIndex--;
         }
     }
 

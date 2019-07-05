@@ -1,27 +1,25 @@
 package com.akashapps.a3dobjectdecoder.objects;
 
 import android.opengl.GLES30;
-import android.util.Log;
 
 import com.akashapps.a3dobjectdecoder.Utilities.Shader;
-
-import java.util.ArrayList;
 
 public class FrameBuffer {
     public static final int BLUR = 1001;
     public static final int DEPTH_MAP = 1002;
     public static final int REGULAR = 1003;
-    public static final int HDR = 1004;
-    public static final int BLOOM = 1005;
+    public static final int FLOAT_CB = 1004;
+    public static final int DUAL_FLOAT_CB = 1005;
+    public static final int BLUR_CONFIG = 1006;
 
     public static final int ATTACHMENT_1 = 0;
     public static final int ATTACHMENT_2 = 1;
     public static final int ATTACHMENT_3 = 2;
 
-    private int[] FRAME_BUFER, TEXTURE, TEXTURE2, TEXTURE3, RENDER_BUFFER;
+    private int[] FRAME_BUFER, TEXTURE, RENDER_BUFFER;
     private SimpleVector dimensions;
     private int ppProperty, mapType, viewPortX, viewPortY;
-    private Quad2D quad, quad2, quad3;
+    private Quad2D quad, quad2, postPorcessingQuad;
     private Texture textureUnit1, textureUnit2;
     private Camera frameCamera;
     private int depthShaderProgram;
@@ -68,7 +66,7 @@ public class FrameBuffer {
                 GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_COMPARE_MODE, GLES30.GL_COMPARE_REF_TO_TEXTURE);
                 GLES30.glFramebufferTexture2D(GLES30.GL_FRAMEBUFFER, GLES30.GL_DEPTH_ATTACHMENT, GLES30.GL_TEXTURE_2D, TEXTURE[0],0);
                 break;
-            case HDR:
+            case FLOAT_CB:
                 TEXTURE = new int[1];
                 GLES30.glGenTextures(1, TEXTURE,0);
                 GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, TEXTURE[0]);
@@ -86,10 +84,9 @@ public class FrameBuffer {
                 GLES30.glRenderbufferStorage(GLES30.GL_RENDERBUFFER, GLES30.GL_DEPTH_COMPONENT24, viewPortX, viewPortY);
                 GLES30.glFramebufferRenderbuffer(GLES30.GL_FRAMEBUFFER, GLES30.GL_DEPTH_ATTACHMENT, GLES30.GL_RENDERBUFFER, RENDER_BUFFER[0]);
                 break;
-            case BLOOM:
+            case DUAL_FLOAT_CB:
                 TEXTURE = new int[2];
                 GLES30.glGenTextures(2, TEXTURE,0);
-                //GLES30.glGenTextures(1, TEXTURE2,0);
 
                 GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, TEXTURE[0]);
                 GLES30.glTexStorage2D(GLES30.GL_TEXTURE_2D, 1, GLES30.GL_RGBA16F,viewPortX, viewPortY);
@@ -99,6 +96,7 @@ public class FrameBuffer {
                 GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_S, GLES30.GL_CLAMP_TO_EDGE);
                 GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_T, GLES30.GL_CLAMP_TO_EDGE);
                 GLES30.glFramebufferTexture2D(GLES30.GL_FRAMEBUFFER, GLES30.GL_COLOR_ATTACHMENT0, GLES30.GL_TEXTURE_2D, TEXTURE[0], 0);
+                GLES30.glBindTexture(GLES30.GL_TEXTURE, 0);
 
                 GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, TEXTURE[1]);
                 GLES30.glTexStorage2D(GLES30.GL_TEXTURE_2D, 1, GLES30.GL_RGBA16F,viewPortX, viewPortY);
@@ -108,14 +106,38 @@ public class FrameBuffer {
                 GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_S, GLES30.GL_CLAMP_TO_EDGE);
                 GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_T, GLES30.GL_CLAMP_TO_EDGE);
                 GLES30.glFramebufferTexture2D(GLES30.GL_FRAMEBUFFER, GLES30.GL_COLOR_ATTACHMENT1, GLES30.GL_TEXTURE_2D, TEXTURE[1], 0);
+                GLES30.glBindTexture(GLES30.GL_TEXTURE, 0);
 
                 int[] buffers = {GLES30.GL_COLOR_ATTACHMENT0, GLES30.GL_COLOR_ATTACHMENT1};
                 GLES30.glDrawBuffers(2,buffers,0);
 
                 GLES30.glGenRenderbuffers(1, RENDER_BUFFER, 0);
                 GLES30.glBindRenderbuffer(GLES30.GL_RENDERBUFFER, RENDER_BUFFER[0]);
-                GLES30.glRenderbufferStorage(GLES30.GL_RENDERBUFFER, GLES30.GL_DEPTH_COMPONENT24, viewPortX, viewPortY);
-                GLES30.glFramebufferRenderbuffer(GLES30.GL_FRAMEBUFFER, GLES30.GL_DEPTH_ATTACHMENT, GLES30.GL_RENDERBUFFER, RENDER_BUFFER[0]);
+                GLES30.glRenderbufferStorage(GLES30.GL_RENDERBUFFER, GLES30.GL_DEPTH24_STENCIL8, viewPortX, viewPortY);
+                GLES30.glFramebufferRenderbuffer(GLES30.GL_FRAMEBUFFER, GLES30.GL_DEPTH_STENCIL_ATTACHMENT, GLES30.GL_RENDERBUFFER, RENDER_BUFFER[0]);
+                break;
+            case BLUR_CONFIG:
+                FRAME_BUFER = new int[2];
+                TEXTURE = new int[2];
+                RENDER_BUFFER = new int[2];
+                GLES30.glGenFramebuffers(2, FRAME_BUFER,0);
+                GLES30.glGenTextures(2,TEXTURE,0);
+                GLES30.glGenRenderbuffers(2, RENDER_BUFFER, 0);
+                for(int i=0;i<2;i++){
+                    GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, FRAME_BUFER[i]);
+                    GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, TEXTURE[i]);
+
+                    GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA16F, viewPortX, viewPortY, 0, GLES30.GL_RGBA, GLES30.GL_FLOAT, null);
+                    GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_LINEAR);
+                    GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_LINEAR);
+                    GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_S, GLES30.GL_CLAMP_TO_EDGE);
+                    GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_T, GLES30.GL_CLAMP_TO_EDGE);
+                    GLES30.glFramebufferTexture2D(GLES30.GL_FRAMEBUFFER, GLES30.GL_COLOR_ATTACHMENT0, GLES30.GL_TEXTURE_2D, TEXTURE[i], 0);
+
+                    GLES30.glBindRenderbuffer(GLES30.GL_RENDERBUFFER, RENDER_BUFFER[i]);
+                    GLES30.glRenderbufferStorage(GLES30.GL_RENDERBUFFER, GLES30.GL_DEPTH_COMPONENT24, viewPortX, viewPortY);
+                    GLES30.glFramebufferRenderbuffer(GLES30.GL_FRAMEBUFFER, GLES30.GL_DEPTH_ATTACHMENT, GLES30.GL_RENDERBUFFER, RENDER_BUFFER[i]);
+                }
                 break;
         }
        /* int status = GLES30.glCheckFramebufferStatus(GLES30.GL_FRAMEBUFFER);
@@ -126,7 +148,7 @@ public class FrameBuffer {
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER,0);
     }
 
-    public void setQuadAndProperties(Quad2D quad, int renderProgram, int attachmentNum){
+    public void setQuadAndProperties(Quad2D quad, int attachmentNum){
         quad.invert();
         switch (attachmentNum) {
             case ATTACHMENT_1:
@@ -135,7 +157,6 @@ public class FrameBuffer {
                 textureUnit1 = new Texture("");
                 textureUnit1.setTexture(this.getTexture(ATTACHMENT_1));
                 this.quad.setTextureUnit(textureUnit1);
-                this.quad.setRenderPreferences(renderProgram);
             break;
             case ATTACHMENT_2:
                 this.quad2 = quad;
@@ -143,13 +164,17 @@ public class FrameBuffer {
                 textureUnit2 = new Texture("");
                 textureUnit2.setTexture(this.getTexture(ATTACHMENT_2));
                 quad2.setTextureUnit(textureUnit2);
-                quad2.setRenderPreferences(renderProgram);
                 break;
         }
     }
 
-    public void setPostProcessingProperty(int property){
-        this.ppProperty = property;
+    public void setPostProcessingInfo(Quad2D quad, int program){
+        this.postPorcessingQuad = quad;
+        postPorcessingQuad.setHorizontalBlur(true);
+        Texture t = new Texture("");
+        postPorcessingQuad.setTextureUnit(t);
+        postPorcessingQuad.setRenderPreferences(program, Quad2D.BLUR);
+        postPorcessingQuad.invert();
     }
 
     public void renderFrame(Scene s){
@@ -188,7 +213,7 @@ public class FrameBuffer {
                 GLES30.glDisable(GLES30.GL_POLYGON_OFFSET_FILL);
                 GLES30.glColorMask(true, true, true, true);
                 break;
-            case HDR:
+            case FLOAT_CB:
                 GLES30.glClearColor(0f, 0f, 0f, 1f);
                 GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
                 GLES30.glEnable(GLES30.GL_DEPTH_TEST);
@@ -198,14 +223,13 @@ public class FrameBuffer {
                         new SimpleVector(-frameCamera.getPosition().x, -frameCamera.getPosition().y, -frameCamera.getPosition().z));
                 GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0);
                 break;
-            case BLOOM:
+            case DUAL_FLOAT_CB:
                 GLES30.glClearColor(0f, 0f, 0f, 1f);
                 GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
                 GLES30.glEnable(GLES30.GL_DEPTH_TEST);
                 GLES30.glEnable(GLES30.GL_BLEND);
-                int[] buffers = {GLES30.GL_COLOR_ATTACHMENT0, GLES30.GL_COLOR_ATTACHMENT1};
-                GLES30.glDrawBuffers(2,buffers,0);
-
+                //int[] buffers = {GLES30.GL_COLOR_ATTACHMENT0, GLES30.GL_COLOR_ATTACHMENT1};
+                //GLES30.glDrawBuffers(2,buffers,0);
 
                 s.onDrawFrame(frameCamera.getMVPMatrix(), frameCamera.getViewMatrix(),
                         new SimpleVector(-frameCamera.getPosition().x, -frameCamera.getPosition().y, -frameCamera.getPosition().z));
@@ -213,6 +237,46 @@ public class FrameBuffer {
                 GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0);
                 break;
         }
+    }
+
+    public void renderBlurTexture(int toBlur, float[] matrix){
+        int[] tex = {toBlur};
+        postPorcessingQuad.setTexture(tex);
+
+        boolean horizontal = true;
+
+        GLES30.glViewport(0,0,viewPortX, viewPortY);
+        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
+        //GLES30.glEnable(GLES30.GL_DEPTH_TEST);
+        //GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
+        GLES30.glEnable(GLES30.GL_BLEND);
+
+        for(int i=0;i<10;i++){
+            if(horizontal) GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, FRAME_BUFER[0]);
+            else GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, FRAME_BUFER[1]);
+
+            postPorcessingQuad.draw(matrix);
+
+            if(horizontal) postPorcessingQuad.setTexture(this.getTexture(0));
+            else postPorcessingQuad.setTexture(this.getTexture(1));
+
+            horizontal = !horizontal;
+            postPorcessingQuad.setHorizontalBlur(horizontal);
+        }
+        GLES30.glEnable(GLES30.GL_DEPTH_TEST);
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0);
+    }
+
+    public void initializeFBRendering(){
+        GLES30.glViewport(0,0,viewPortX, viewPortY);
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, FRAME_BUFER[0]);
+        GLES30.glClearColor(0f, 0f, 0f, 1f);
+        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
+    }
+
+    public void cleanUpFBRendering(int width, int height){
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0);
+        GLES30.glViewport(0,0,width, height);
     }
 
     public void onDrawFrame(float[] mvpMatrix){

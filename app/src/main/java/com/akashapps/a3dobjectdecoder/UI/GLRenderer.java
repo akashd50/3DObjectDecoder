@@ -22,8 +22,7 @@ import com.akashapps.a3dobjectdecoder.objects.Quad2D;
 import com.akashapps.a3dobjectdecoder.logic.TouchController;
 import com.akashapps.a3dobjectdecoder.Utilities.*;
 import com.akashapps.a3dobjectdecoder.objects.Cube;
-
-import java.util.logging.SocketHandler;
+import com.akashapps.a3dobjectdecoder.objects.Wireframe;
 //import com.threed.jpct.*;
 //import com.threed.jpct.util.*;
 
@@ -37,7 +36,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     public static final float[] lightProjectionMatrix = new float[16];
     public static final float[] lightViewMatrix = new float[16];
 
-    private float WIDTH, HEIGHT;
+    private int WIDTH, HEIGHT;
 
     public static final float[] uiMVPMatrix = new float[16];
     public static final float[] uiProjectionMatrix = new float[16];
@@ -58,11 +57,10 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     private Camera camera, lightCamera;
     private LightingSystem lightingSystem;
 
-    private int[] dispMapFBO, dispMap, dispRb, depthFBO, depthMap, depthRb;
-    private int quadProgram, quadDepthProgram, diffNSpec,depthShaderProgram, program, hdrQuadProgram, shadowObjectProgram,singleColorProgram;
-    private Quad2D secondDisplay, shadowMap;
+    private int quadProgram, quadDepthProgram, diffNSpec,depthShaderProgram,blendTextureProgram, blurProgram, program, hdrQuadProgram, shadowObjectProgram,singleColorProgram;
+    private Quad2D quad1, quad2, blurDisplay;
     Texture shadow, normal, container, rickuii;
-    FrameBuffer HDRdb, depthFrameBuffer;
+    //FrameBuffer HDRdb, depthFrameBuffer, blurBuffer1;
     private Object3D lightObject;
     public GLRenderer(Context ctx, TouchController controller, int objID) {
         this.context = ctx;
@@ -75,6 +73,10 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     public void onSurfaceCreated(GL10 unused, EGLConfig config) {
         Utilities.setScreenVars(Utilities.getScreenWidthPixels()/Utilities.getScreenHeightPixels()
                 ,Utilities.getScreenHeightPixels(), Utilities.getScreenWidthPixels());
+        GLES30.glEnable( GLES30.GL_DEPTH_TEST );
+        GLES30.glDepthFunc( GLES30.GL_LESS );
+        GLES30.glEnable(GLES30.GL_CULL_FACE);
+        iniliazeUIElements();
     }
 
     private void iniliazeUIElements(){
@@ -84,8 +86,8 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         scene = new Scene();
         scene.setCamera(camera);
         lightingSystem = new LightingSystem();
-        Light l = new Light(new SimpleVector(3f,3f,2f),new SimpleVector(1.0f,0.8f,1.0f),
-                new SimpleVector(0.7f,0.7f,0.7f), 0.1f);
+        Light l = new Light(new SimpleVector(2f,2f,5f),new SimpleVector(1.0f,0.8f,1.0f),
+                new SimpleVector(0.4f,0.4f,0.4f), 0.1f);
         l.setIntensity(10f);
         lightingSystem.addLight(l);
 
@@ -102,7 +104,6 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         lightingSystem.setDirectionalLight(new Light(light, new SimpleVector(1f,1f,1f),new SimpleVector(), 0.1f));
         //lightingSystem.addLight(l);
 
-
         program = Shader.getPointLightProgram(1);
         quadProgram = Shader.getQuadTextureProgram();
         quadDepthProgram = Shader.getQuadOrthoDepthTextureProgram();
@@ -111,9 +112,11 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         singleColorProgram = Shader.getSingleColorShaderPorgram();
         hdrQuadProgram = Shader.getHDRQuadTextureProgram();
         depthShaderProgram = Shader.getDepthShaderProgram();
+        blurProgram = Shader.getBlurQuadTextureProgram();
+        blendTextureProgram = Shader.getBlendQuadTextureProgram();
 
         rickuii = new Texture("multi", context, R.drawable.rickuii);
-        container = new Texture("c", context, R.drawable.container_diff, R.drawable.container_spec_iii);
+        container = new Texture("c", context, R.drawable.brickwall, R.drawable.brickwall_normal);
 
         switch (ObjectID){
             case 0:
@@ -162,7 +165,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
                 cube2.setTextureUnit(rickuii);
                // cube3.setTextureUnit(rickuii);
 
-                cube.setRenderingPreferences(shadowObjectProgram, Object3D.LIGHT_WITH_SHADOW);
+                cube.setRenderingPreferences(diffNSpec, Object3D.DIFF_N_SPEC_MAP);
                 cube2.setRenderingPreferences(program, Object3D.LIGHTING_SYSTEM_SPEC);
               ///  cube3.setRenderingPreferences(program, Object3D.LIGHTING_SYSTEM_SPEC);
 
@@ -181,16 +184,27 @@ public class GLRenderer implements GLSurfaceView.Renderer {
 
         scene.setLightingSystem(lightingSystem);
 
-        secondDisplay = new Quad2D(1.5f,1.0f);
-        secondDisplay.setOpacity(1f);
-        secondDisplay.setDefaultTrans(1.2f,-0.5f,0f);
-        HDRdb.setQuadAndProperties(secondDisplay,hdrQuadProgram,FrameBuffer.ATTACHMENT_1);
+      /*  quad1 = new Quad2D(4.0f,2.0f);
+        quad1.setOpacity(1f);
+        quad1.setDefaultTrans(0f,0f,0f);
+        quad1.setRenderPreferences(hdrQuadProgram, Quad2D.REGULAR);
+        HDRdb.setQuadAndProperties(quad1,FrameBuffer.ATTACHMENT_1);
 
-        shadowMap = new Quad2D(1.5f,1.0f);
-        shadowMap.setOpacity(1f);
-        shadowMap.setDefaultTrans(-1.2f,-0.5f,0f);
-        HDRdb.setQuadAndProperties(shadowMap,hdrQuadProgram,FrameBuffer.ATTACHMENT_2);
-        //depthFrameBuffer.setQuadAndProperties(shadowMap,quadDepthProgram,FrameBuffer.ATTACHMENT_1);
+        quad2 = new Quad2D(0.75f,0.5f);
+        quad2.setOpacity(1f);
+        quad2.setDefaultTrans(-1.5f,-0.7f,0f);
+        quad2.setRenderPreferences(quadProgram, Quad2D.REGULAR);
+        HDRdb.setQuadAndProperties(quad2,FrameBuffer.ATTACHMENT_2);
+*/
+  /*      blurDisplay = new Quad2D(4.0f,2f);
+        blurDisplay.setOpacity(1f);
+        blurDisplay.setDefaultTrans(0f,0f,0f);
+        blurDisplay.setRenderPreferences(blendTextureProgram, Quad2D.BLEND);
+        Texture t = new Texture("");
+        blurDisplay.setTextureUnit(t);
+        blurDisplay.invert();
+  */      //blurBuffer1.setQuadAndProperties(blurDisplay,FrameBuffer.ATTACHMENT_2);
+
 
         lightObject = new Object3D(R.raw.container, context);
         lightObject.setObjectColor(new SimpleVector(1.0f,0.8f,1.0f));
@@ -199,7 +213,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         lightObject.setBredth(0.4f);
         lightObject.setHeight(0.4f);
         lightObject.setRenderingPreferences(singleColorProgram, Object3D.SINGLE_COLOR);
-        lightObject.setTextureOpacity(2.0f);
+        lightObject.setTextureOpacity(1.0f);
         scene.addSceneObject(lightObject);
     }
 
@@ -216,18 +230,25 @@ public class GLRenderer implements GLSurfaceView.Renderer {
 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-        depthFrameBuffer.renderFrame(scene);
-        container.setShadowMapTexture(depthFrameBuffer.getTexture(FrameBuffer.ATTACHMENT_1));
-        rickuii.setShadowMapTexture(depthFrameBuffer.getTexture(FrameBuffer.ATTACHMENT_1));
+        //depthFrameBuffer.renderFrame(scene);
+        //container.setShadowMapTexture(depthFrameBuffer.getTexture(FrameBuffer.ATTACHMENT_1));
+        //rickuii.setShadowMapTexture(depthFrameBuffer.getTexture(FrameBuffer.ATTACHMENT_1));
 
         //-----------------------
-        scene.setRenderingPreferences(program, Object3D.LIGHTING_SYSTEM_SPEC);
-        lightObject.setRenderingPreferences(singleColorProgram, Object3D.SINGLE_COLOR);
-        HDRdb.renderFrame(scene);
+        //scene.setRenderingPreferences(program, Object3D.LIGHTING_SYSTEM_SPEC);
+        //lightObject.setRenderingPreferences(singleColorProgram, Object3D.SINGLE_COLOR);
+
+        //HDRdb.renderFrame(scene);
+        //HDRdb.initializeFBRendering();
+        //scene.onDrawFrame(camera.getMVPMatrix(),camera.getViewMatrix(), new SimpleVector(-camera.getPosition().x, -camera.getPosition().y, -camera.getPosition().z));
+        //HDRdb.cleanUpFBRendering(WIDTH, HEIGHT);
+
+        //quad2.getTextureUnit().setTexture(HDRdb.getTexture(1));
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        GLES30.glViewport(0,0,(int)WIDTH, (int)HEIGHT);
+        GLES30.glViewport(0,0,WIDTH, HEIGHT);
         GLES30.glClearColor(0f,0f,0f,1f);
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
+        GLES30.glEnable(GLES30.GL_DEPTH_TEST);
         if(ObjectID == 0) {
             if (controller.rotationalTurnY != 0) {
                 scene.rotateSceneX((float) (controller.rotationalTurnY * (180 / Math.PI)));
@@ -240,22 +261,22 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         }else if(ObjectID ==1){
             if (controller.rotationalTurnY != 0) {
                 cube.rotateX((float) (controller.rotationalTurnY * (180 / Math.PI)));
-                //secondDisplay.rotateX((float) (controller.rotationalTurnY * (180 / Math.PI)));
+                //quad1.rotateX((float) (controller.rotationalTurnY * (180 / Math.PI)));
                 controller.rotationalTurnY = 0;
 
             }
             if (controller.rotationTurnX != 0) {
                 cube.rotateY((float) (controller.rotationTurnX * (180 / Math.PI)));
-                //secondDisplay.rotateY((float) (controller.rotationTurnX * (180 / Math.PI)));
+                //quad1.rotateY((float) (controller.rotationTurnX * (180 / Math.PI)));
                 controller.rotationTurnX = 0;
             }
         }
 
-        scene.setRenderingPreferences(shadowObjectProgram, Object3D.LIGHT_WITH_SHADOW);
-        lightObject.setRenderingPreferences(singleColorProgram, Object3D.SINGLE_COLOR);
+        //scene.setRenderingPreferences(shadowObjectProgram, Object3D.LIGHT_WITH_SHADOW);
+        //lightObject.setRenderingPreferences(singleColorProgram, Object3D.SINGLE_COLOR);
 
         scene.onDrawFrame(camera.getMVPMatrix(),camera.getViewMatrix(), new SimpleVector(-camera.getPosition().x, -camera.getPosition().y, -camera.getPosition().z));
-        lightObject.onDrawFrame(camera.getMVPMatrix(),camera.getViewMatrix(), new SimpleVector(-camera.getPosition().x, -camera.getPosition().y, -camera.getPosition().z));
+        //lightObject.onDrawFrame(camera.getMVPMatrix(),camera.getViewMatrix(), new SimpleVector(-camera.getPosition().x, -camera.getPosition().y, -camera.getPosition().z));
         GLES30.glDisable(GLES30.GL_DEPTH_TEST);
         customUIDrawing();
 
@@ -269,10 +290,14 @@ public class GLRenderer implements GLSurfaceView.Renderer {
                 0.0f, 0.0f, 0.0f,
                 0f, 1.0f, 0.0f);
         android.opengl.Matrix.multiplyMM(uiMVPMatrix, 0, uiProjectionMatrix, 0, uiViewMatrix, 0);
-        //secondDisplay.draw(uiMVPMatrix);
-        HDRdb.onDrawFrame(uiMVPMatrix);
-        //depthFrameBuffer.onDrawFrame(uiMVPMatrix);
-        //shadowMap.draw(uiMVPMatrix);
+        //quad1.draw(uiMVPMatrix);
+        //quad2.draw(uiMVPMatrix);
+        //blurBuffer1.renderBlurTexture(quad2.getTextureUnit().getTexture(),uiMVPMatrix);
+        //GLES30.glViewport(0,0,WIDTH, HEIGHT);
+        //blurDisplay.getTextureUnit().setTexture(HDRdb.getTexture(0));
+        //blurDisplay.getTextureUnit().setSpecularTexture(blurBuffer1.getTexture(1));
+        //blurDisplay.draw(uiMVPMatrix);
+
         //drawText("FPS: "+FPS, new SimpleVector(-1.6f,0.8f,2f), uiMVPMatrix);
         float[] color = {1.0f,1.0f,0f,1f};
         textDecoder.drawText("FPS: "+FPS,new SimpleVector(-1.0f,0.8f,2f),new SimpleVector(1.0f,1.0f,1f),uiMVPMatrix, color);
@@ -288,29 +313,30 @@ public class GLRenderer implements GLSurfaceView.Renderer {
 
         Matrix.orthoM(uiProjectionMatrix, 0, -ratio, ratio, -1, 1, 1, 10);
         Matrix.perspectiveM(mProjectionMatrix, 0, 45f, ratio, 1, 100);
+
         camera.setMatrices(new float[16],mProjectionMatrix,new float[16]);
         camera.setPosition(new SimpleVector(0f,0f,5f));
+
         camera.lookAt(new SimpleVector(0f,0f,0f));
         camera.setFollowSpeed(new SimpleVector(0.04f,0f,0f));
         camera.setFollowDelay(new SimpleVector(1.5f,0f,0f));
 
         Matrix.orthoM(lightProjectionMatrix, 0, -10, 10, -10,10,1,10);
-        //Matrix.perspectiveM(lightProjectionMatrix, 0, 45f, ratio, 1, 30);
         lightCamera.setMatrices(new float[16], lightProjectionMatrix, new float[16]);
         lightCamera.setPosition(new SimpleVector(0f,0f,5f));
         lightCamera.lookAt(new SimpleVector(0f,0f,0f));
 
-        GLES30.glEnable( GLES30.GL_DEPTH_TEST );
-        GLES30.glDepthFunc( GLES30.GL_LESS );
-        GLES30.glEnable(GLES30.GL_CULL_FACE);
 
-        HDRdb = new FrameBuffer(FrameBuffer.BLOOM,1080, 720);
+
+     /*   HDRdb = new FrameBuffer(FrameBuffer.DUAL_FLOAT_CB,WIDTH, HEIGHT);
         HDRdb.setFrameCamera(camera);
 
-        depthFrameBuffer = new FrameBuffer(FrameBuffer.DEPTH_MAP, 1024,1024);
-        depthFrameBuffer.setFrameCamera(lightCamera);
+        blurBuffer1 = new FrameBuffer(FrameBuffer.BLUR_CONFIG, WIDTH,HEIGHT);
+        blurBuffer1.setFrameCamera(camera);
+        blurBuffer1.setPostProcessingInfo(new Quad2D(4.0f,2.0f), blurProgram);
 
-        iniliazeUIElements();
+        depthFrameBuffer = new FrameBuffer(FrameBuffer.DEPTH_MAP, 1024,1024);
+        depthFrameBuffer.setFrameCamera(lightCamera);*/
 
         PAUSED = false;
     }
@@ -326,16 +352,6 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         GLES30.glCompileShader(shader);
 
         return shader;
-    }
-
-   public static void drawText(String s, SimpleVector loc, float[] mMVPMatrix){
-        float nl = loc.x;
-        for(int i=0;i<s.length();i++){
-            Quad2D temp = Utilities.CHARS_ARRAY[(int)s.charAt(i)];
-            temp.changeTransform(nl,loc.y,loc.z);
-            temp.draw(mMVPMatrix);
-            nl+=0.1f;
-        }
     }
 
 }

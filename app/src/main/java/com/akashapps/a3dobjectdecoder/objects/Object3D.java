@@ -17,11 +17,11 @@ import java.util.ArrayList;
 
 public class Object3D extends SceneObject {
     private static int ObjectID = 1000;
-    private static final String LIGHT_COLOR = "v_lightCol";
+    private static final String LIGHT_COLOR = "directionalLight_color";
     private static final String AMBIENT_LIGHT = "v_ambient";
     private static final String OPACITY = "v_opacity";
     private static final String SHININESS = "shininess";
-    private static final String LiGHT_LOCATION = "v_VectorToLight";
+    private static final String LiGHT_LOCATION = "directionalLight";
 
     public static final int DIFF_N_SPEC_MAP = 1001;
     public static final int DIRECTIONAL_LIGHT = 1002;
@@ -38,7 +38,7 @@ public class Object3D extends SceneObject {
     private ArrayList<SimpleVector> vertices, normals, uvs;
     private ArrayList<Config> drawConfig;
     private FloatBuffer mTextureBuffer, vertexBuffer, normalBuffer;
-    private float[] verticesA, normalsA, uvsA, transformationMatrix;
+    private float[] verticesA, normalsA, uvsA, modelMatrix;
     private int mPositionHandle, normalHandle, mProgram, vertexCount;
 
     private int mMVPMatrixHandle, aTextureHandle, textureUniform;
@@ -60,7 +60,7 @@ public class Object3D extends SceneObject {
     public Object3D(int fileId, Context context){
         this.id = ObjectID++;
 
-        transformationMatrix = new float[16];
+        modelMatrix = new float[16];
         location = new SimpleVector(0f,0f,0f);
         rotation = new SimpleVector(0f,0f,0f);
         //lightColor = new SimpleVector(1f,1f,1f);
@@ -124,17 +124,17 @@ public class Object3D extends SceneObject {
     public void onDrawFrame(float[] mMVPMatrix, float[] VIEW_MATRIX, SimpleVector eyeLocation){
         float[] scratch = new float[16];
 
-        Matrix.setIdentityM(transformationMatrix,0);
+        Matrix.setIdentityM(modelMatrix,0);
         if(super.followingObject!=null){
-            Matrix.translateM(transformationMatrix, 0, followingObject.getLocation().x, location.y, location.z);
+            Matrix.translateM(modelMatrix, 0, followingObject.getLocation().x, location.y, location.z);
         }else {
-            Matrix.translateM(transformationMatrix, 0, location.x, location.y, location.z);
+            Matrix.translateM(modelMatrix, 0, location.x, location.y, location.z);
         }
-        Matrix.rotateM(transformationMatrix, 0, rotation.x, 1, 0, 0);
-        Matrix.rotateM(transformationMatrix, 0, rotation.y, 0, 1, 0);
-        Matrix.rotateM(transformationMatrix, 0, rotation.z, 0, 0, 1);
-        Matrix.scaleM(transformationMatrix,0,scale.x, scale.y, scale.z);
-        Matrix.multiplyMM(scratch,0,mMVPMatrix,0, transformationMatrix,0);
+        Matrix.rotateM(modelMatrix, 0, rotation.x, 1, 0, 0);
+        Matrix.rotateM(modelMatrix, 0, rotation.y, 0, 1, 0);
+        Matrix.rotateM(modelMatrix, 0, rotation.z, 0, 0, 1);
+        Matrix.scaleM(modelMatrix,0,scale.x, scale.y, scale.z);
+        Matrix.multiplyMM(scratch,0,mMVPMatrix,0, modelMatrix,0);
 
         //drawing------------------------------------------------
         switch (OBJECT_TYPE) {
@@ -142,7 +142,7 @@ public class Object3D extends SceneObject {
                 renderWithDirectionalLight(scratch);
                 break;
             case DIRECTIONAL_WITH_SPEC:
-                renderWithDirectionalLightAndSpecularRef(scratch, transformationMatrix, eyeLocation);
+                renderWithDirectionalLightAndSpecularRef(scratch, modelMatrix, eyeLocation);
                 break;
             case LIGHTING_SYSTEM_SPEC:
                 renderWithLightingSystem(scratch, VIEW_MATRIX, eyeLocation);
@@ -183,7 +183,7 @@ public class Object3D extends SceneObject {
     }
     private void renderWithDirectionalLightAndSpecularRef(float[] mvpMatrix, float[] model, SimpleVector eyeLocation){
         setProgramAndUMat(mvpMatrix);
-        setTransformationMatrix(model);
+        setmodelMatrix(model);
         setULightVector();
         setAmbientLightVector();
         setOpacityVector();
@@ -202,13 +202,12 @@ public class Object3D extends SceneObject {
 
         SimpleVector mainlight = lightingSystem.getDirectionalLight().getLocation();
         float[] vectorToLight = {mainlight.x,mainlight.y,mainlight.z,0.0f};
-        final float[] vectorToLightInEyeSpace = new float[4];
-
         float[] loc = lightingSystem.getLightsLocationArray();
 
+        final float[] vectorToLightInEyeSpace = new float[4];
         final float[] ptLightInEyeSpace = new float[loc.length];
 
-        Matrix.multiplyMM(modelView,0,viewMatrix,0,transformationMatrix,0);
+        Matrix.multiplyMM(modelView,0,viewMatrix,0,modelMatrix,0);
         Matrix.invertM(tempMat,0,modelView, 0);
         Matrix.transposeM(invModelView,0,tempMat,0);
 
@@ -222,6 +221,7 @@ public class Object3D extends SceneObject {
             int offset = i*4;
             Matrix.multiplyMV(ptLightInEyeSpace, offset, viewMatrix, 0, loc, offset);
         }
+
         setPointLights(ptLightInEyeSpace, lightingSystem.getLightsDiffuseArray());
         setPointLightSpecular(lightingSystem.getLightsSpecArray());
         setPointLightIntensity(lightingSystem.getLightIntensityArray());
@@ -249,7 +249,7 @@ public class Object3D extends SceneObject {
 
         final float[] ptLightInEyeSpace = new float[loc.length];
 
-        Matrix.multiplyMM(modelView,0,viewMatrix,0,transformationMatrix,0);
+        Matrix.multiplyMM(modelView,0,viewMatrix,0,modelMatrix,0);
         Matrix.invertM(tempMat,0,modelView, 0);
         Matrix.transposeM(invModelView,0,tempMat,0);
 
@@ -295,13 +295,13 @@ public class Object3D extends SceneObject {
 
         final float[] ptLightInEyeSpace = new float[loc.length];
 
-        Matrix.multiplyMM(modelView,0,viewMatrix,0,transformationMatrix,0);
+        Matrix.multiplyMM(modelView,0,viewMatrix,0,modelMatrix,0);
         Matrix.invertM(tempMat,0,modelView, 0);
         Matrix.transposeM(invModelView,0,tempMat,0);
 
         setProgramAndUMat(mvpMatrix);
         setViewAndInvrViewMatrices(modelView, invModelView);
-        Matrix.multiplyMM(mvpMatrix,0,lightingSystem.getLight(0).getLightMVPMatrix(),0, transformationMatrix,0);
+        Matrix.multiplyMM(mvpMatrix,0,lightingSystem.getLight(0).getLightMVPMatrix(),0, modelMatrix,0);
 
         int trMatrix = GLES30.glGetUniformLocation(mProgram, "u_lightSpaceMatrix");
         GLES30.glUniformMatrix4fv(trMatrix , 1, false, mvpMatrix, 0);
@@ -361,15 +361,15 @@ public class Object3D extends SceneObject {
         mMVPMatrixHandle = GLES30.glGetUniformLocation(mProgram, "u_Matrix");
         GLES30.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, mMVPMatrix, 0);
     }
-    private void setTransformationMatrix(float[] matrix){
-        int trMatrix = GLES30.glGetUniformLocation(mProgram, "transformation_matrix");
+    private void setmodelMatrix(float[] matrix){
+        int trMatrix = GLES30.glGetUniformLocation(mProgram, "model_matrix");
         GLES30.glUniformMatrix4fv(trMatrix , 1, false, matrix, 0);
     }
     private void setViewAndInvrViewMatrices(float[] view, float[] invView){
-        int trMatrix = GLES30.glGetUniformLocation(mProgram, "view_transformation_matrix");
+        int trMatrix = GLES30.glGetUniformLocation(mProgram, "model_view_matrix");
         GLES30.glUniformMatrix4fv(trMatrix , 1, false, view, 0);
 
-        trMatrix = GLES30.glGetUniformLocation(mProgram, "inv_view_transformation");
+        trMatrix = GLES30.glGetUniformLocation(mProgram, "inv_model_view_matrix");
         GLES30.glUniformMatrix4fv(trMatrix , 1, false, invView, 0);
         float[] scratch = new float[16];
     }

@@ -38,12 +38,17 @@ public class MainGameActivity extends Activity {
 
     @Override
     protected void onStop() {
-        glRendererView.onStop();
         super.onStop();
     }
 
     @Override
     public void onBackPressed() {
+        glRendererView.onBackPressed();
         finish();
+        try {
+            finalize();
+        }catch (Throwable e){
+            e.printStackTrace();
+        }
     }
 }

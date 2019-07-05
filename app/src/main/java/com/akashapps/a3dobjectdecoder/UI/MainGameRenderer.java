@@ -36,6 +36,7 @@ import com.akashapps.a3dobjectdecoder.objects.SceneObject;
 import com.akashapps.a3dobjectdecoder.objects.SimpleVector;
 import com.akashapps.a3dobjectdecoder.objects.Texture;
 import com.akashapps.a3dobjectdecoder.objects.Quad2D;
+import com.akashapps.a3dobjectdecoder.objects.TouchListener;
 import com.akashapps.a3dobjectdecoder.objects.Wireframe;
 
 import java.io.IOException;
@@ -77,17 +78,17 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
     private boolean isReady;
 
     private AnimatedObject mainCharacter;
-    private Pose gunFront, jumpPose;
+    private Pose walkPose, jumpPose;
     private Animation punch, rickWalking, walk, jumpAnim;
 
     private ParticleSystemV2 particleSystem, gunSparks;
     private int particle_red = 0;
     private int particle_green = 0;
     private int particle_blue = 0;
-    private int punchFrame;
+    private int punchFrame, punchPauseFrame;
 
     private Quad2D loadingTitle, loadingCircle;
-    private int program, refProgram, ptLightProgram, DiffSpecProgram, hdrProgram;
+    private int quadProgram, refProgram, ptLightProgram, DiffSpecProgram, hdrProgram;
     private Texture rickuii,blockT,nightSky,woodT,rickCNew, roadT, garbageBin, rickCharModel;
     private LightingSystem lightingSystem;
     private SimpleVector bulletLoc;
@@ -96,8 +97,8 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
     private double jumpStartTime;
     private AssetManager am;
     private Wireframe characterWF, targetWF;
-    private FrameBuffer HDRBuffer;
-    private Camera lightView;
+    //private FrameBuffer HDRBuffer;
+    //private Camera lightView;
 
     public MainGameRenderer(Context ctx, TouchController controller) {
         this.context = ctx;
@@ -110,52 +111,22 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
 
 
     public void onSurfaceCreated(GL10 unused, EGLConfig config) {
-        Utilities.setScreenVars(Utilities.getScreenWidthPixels()/Utilities.getScreenHeightPixels()
-                ,Utilities.getScreenHeightPixels(), Utilities.getScreenWidthPixels());
-    }
-
-    @Override
-    public void onSurfaceChanged(GL10 gl, int width, int height) {
-        GLES30.glViewport(0, 0, width, height);
-        float ratio = (float) width / height;
-        HEIGHT = height;WIDTH = width;
-
         frameCountStartTime = 0f;
         numFramesRendered = 0;
         frameCountToDraw = 0;
 
-        camera = new Camera();
-        camera.setTouchController(controller);
-        Matrix.perspectiveM(mProjectionMatrix, 0, 45f, ratio, 1, 200);
-        Matrix.orthoM(uiProjectionMatrix, 0, -ratio, ratio, -1, 1, 1, 10);
-
-
-        float[] lightProjectionMatrix = new float[16];
-        //Matrix.perspectiveM(lightProjectionMatrix, 0, 60f, ratio, 1, 40);
-        Matrix.orthoM(lightProjectionMatrix, 0, -10, 10, -10, 10, 1, 20);
-        lightView = new Camera();
-        lightView.setMatrices(new float[16], lightProjectionMatrix, new float[16]);
-        //lightView.setPosition(new SimpleVector(8f,7.5f,4f));
-        lightView.setPosition(new SimpleVector(10f-4.5f,2f,-4f));
-        HDRBuffer = new FrameBuffer(FrameBuffer.HDR, 1080,720);
-        HDRBuffer.setFrameCamera(camera);
-
         GLES30.glEnable( GLES30.GL_DEPTH_TEST );
         GLES30.glDepthFunc( GLES30.GL_LESS);
         GLES30.glEnable(GLES30.GL_CULL_FACE);
-        
 
-        program = Shader.generateShadersAndProgram(Shader.O3DVERTEXSHADER, Shader.O3DFRAGMENTSHADER);
+        //programs
         refProgram = Shader.generateShadersAndProgram(Shader.REFLECTVERTEXSHADER, Shader.REFLECTFRAGMENTSHADER);
         ptLightProgram = Shader.getPointLightProgram(5);
         DiffSpecProgram = Shader.getReflectShaderProgram(5);
         hdrProgram = Shader.getHDRQuadTextureProgram();
+        quadProgram = Shader.getQuadTextureProgram();
 
-        Quad2D quad = new Quad2D(1.5f,1.0f);
-        quad.setOpacity(1.0f);
-        quad.setDefaultTrans(1.3f,0.5f,0f);
-        HDRBuffer.setQuadAndProperties(quad,hdrProgram, FrameBuffer.ATTACHMENT_1);
-
+        //particle systems
         particleSystem = new ParticleSystemV2(240*4);
         particleSystem.setBlendType(ParticleSystemV2.LIGHT_BLEND);
         particleSystem.setPointerSize(30f);
@@ -169,9 +140,8 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         gunSparks.setTimeOnScreen(3f);
         gunSparks.generateShadersAndProgram();
         gunSparks.loadTexture(context, R.drawable.q_particle_v);
-
-        bulletLoc = new SimpleVector(0f,0f,0f);
-
+        
+        //Textures
         rickuii = new Texture("multi", context, R.drawable.rickuii);
         blockT = new Texture("block", context, R.drawable.sidewalk_custom_col, R.drawable.sidewalk_custom_spec);
         nightSky = new Texture("nsky", context, R.drawable.night_sky_ii);
@@ -180,18 +150,16 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         roadT = new Texture("r", context, R.drawable.road_col, R.drawable.road_spec_ii);
         garbageBin = new Texture("gbin", context, R.drawable.chipped_paint_i, R.drawable.chipped_paint_spec_ii);
         rickCharModel = new Texture("char", context, R.drawable.rick_char_model_col, R.drawable.rick_char_model_ref);
-
-
+        
+        //loading dialog stuff
         Texture loadT = new Texture("loadT", context, R.drawable.loading_title);
         Texture loadC = new Texture("loadT", context, R.drawable.loading_title);
-        int quadProgram = Shader.getQuadTextureProgram();
         loadingTitle = new Quad2D(0.5f,0.5f);
         loadingCircle = new Quad2D(0.7f,0.7f);
         loadingTitle.setTextureUnit(loadT);
         loadingCircle.setTextureUnit(loadC);
-        loadingTitle.setRenderPreferences(quadProgram);
-        loadingCircle.setRenderPreferences(quadProgram);
-
+        loadingTitle.setRenderPreferences(quadProgram, Quad2D.REGULAR);
+        loadingCircle.setRenderPreferences(quadProgram, Quad2D.REGULAR);
         loadingTitle.setOpacity(1.0f);
         loadingCircle.setOpacity(1.0f);
 
@@ -199,8 +167,8 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         initializeUIElements();
         initializeLighting();
 
+        //collision listeners
         am = context.getAssets();
-
         characterGround = new CollisionHandlerV1();
         listener = new BoxCollisionListener(characterGround);
 
@@ -210,48 +178,77 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         testCHandler = new CollisionHandlerV1();
         testCListener = new BoxCollisionListener(testCHandler);
 
+        //main Character
         mainCharacter = new AnimatedObject(R.raw.rick_base_ii, R.drawable.rickuii,context);
-        gunFront = mainCharacter.addPose(R.raw.rick_base_i);
+        walkPose = mainCharacter.addPose(R.raw.rick_base_i);
         jumpPose = mainCharacter.addPose(R.raw.rick_in_jump);
-        mainCharacter.setActivePose(gunFront.getId());
+        mainCharacter.setActivePose(walkPose.getId());
 
         //animations
         mainCharacter.getMain().setRenderingPreferences(DiffSpecProgram,Object3D.DIFF_N_SPEC_MAP);
-        mainCharacter.getMain().setShininess(1f);
-        rickWalking = mainCharacter.addAnimation(gunFront.getId(),19, true);
-        rickWalking.setFrameHold(3);
-        jumpAnim = mainCharacter.addAnimation(jumpPose.getId(),15, false);
-        jumpAnim.setFrameHold(3);
-        punch = mainCharacter.addAnimation(gunFront.getId(),50, false);
-        punch.setFrameHold(2);
-
-        readAnimationFiles();
-
+        mainCharacter.getMain().setShininess(0.4f);
+        mainCharacter.setLocation(new SimpleVector(START_X+2f,1f,0f));
+        mainCharacter.setGravity(true);
         mainCharacter.setCollider(new BoxCollider());
         mainCharacter.setVerticalVel(-0.004f);
         mainCharacter.setLength(0.5f);
         mainCharacter.setBredth(0.3f);
         mainCharacter.setHeight(1.2f);
-
-        listener.setMain(mainCharacter);
-        mainCharacter.setLocation(new SimpleVector(START_X+2f,1f,0f));
-        mainCharacter.setGravity(true);
-        camera.follow(mainCharacter);
-
         mainCharacter.getMain().setTextureUnit(rickCharModel);
         mainCharacter.setLightingSystem(lightingSystem);
 
+        rickWalking = mainCharacter.addAnimation(walkPose.getId(),19, true);
+        rickWalking.setFrameHold(3);
+        jumpAnim = mainCharacter.addAnimation(jumpPose.getId(),15, false);
+        jumpAnim.setFrameHold(3);
+        punch = mainCharacter.addAnimation(walkPose.getId(),50, false);
+        punch.setFrameHold(2);
 
+        readAnimationFiles();
+
+        listener.setMain(mainCharacter);
         initializeGameObjects();
-        isReady = true;
 
+        isReady = true;
         listener.startListener();
+    }
+
+    @Override
+    public void onSurfaceChanged(GL10 gl, int width, int height) {
+        GLES30.glViewport(0, 0, width, height);
+        float ratio = (float) width / height;
+        HEIGHT = height;WIDTH = width;
+        
+        camera = new Camera();
+        camera.setTouchController(controller);
+        Matrix.perspectiveM(mProjectionMatrix, 0, 45f, ratio, 1, 200);
+        Matrix.orthoM(uiProjectionMatrix, 0, -ratio, ratio, -1, 1, 1, 10);
+
+
+        float[] lightProjectionMatrix = new float[16];
+        //Matrix.perspectiveM(lightProjectionMatrix, 0, 60f, ratio, 1, 40);
+        Matrix.orthoM(lightProjectionMatrix, 0, -10, 10, -10, 10, 1, 20);
+        //lightView = new Camera();
+        //lightView.setMatrices(new float[16], lightProjectionMatrix, new float[16]);
+        //lightView.setPosition(new SimpleVector(8f,7.5f,4f));
+        //lightView.setPosition(new SimpleVector(10f-4.5f,2f,-4f));
+       // HDRBuffer = new FrameBuffer(FrameBuffer.FLOAT_CB, 1080,720);
+       // HDRBuffer.setFrameCamera(camera);
+
+      /*  Quad2D quad = new Quad2D(1.5f,1.0f);
+        quad.setOpacity(1.0f);
+        quad.setDefaultTrans(1.3f,0.5f,0f);
+        quad.setRenderPreferences(hdrProgram, Quad2D.REGULAR);
+        HDRBuffer.setQuadAndProperties(quad, FrameBuffer.ATTACHMENT_1);*/
+
+        bulletLoc = new SimpleVector(0f,0f,0f);
 
         camera.setMatrices(new float[16],mProjectionMatrix,new float[16]);
         camera.setPosition(new SimpleVector(0f,2f,5f));
         camera.lookAt(new SimpleVector(0f,0f,0f));
         camera.setFollowSpeed(new SimpleVector(0.04f,0f,0f));
         camera.setFollowDelay(new SimpleVector(1.5f,0f,0f));
+        camera.follow(mainCharacter);
     }
 
     private void initializeUIElements(){
@@ -272,6 +269,26 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         sceneControlHandler.addController(punchButton);
         sceneControlHandler.addController(jumpButton);
         sceneControlHandler.addController(shootButton);
+
+        /*TouchListener touchListener = new TouchListener() {
+            @Override
+            public void onTouchDown() {
+
+            }
+
+            @Override
+            public void onTouchUp() {
+                mainCharacter.setAnimationTBP(punch.getID());
+                mainCharacter.setActivePose(walkPose.getId());
+            }
+
+            @Override
+            public void onTouchMove() {
+
+            }
+        };
+
+        punchButton.setListener(touchListener);*/
     }
 
     private void initializeGameObjects(){
@@ -279,26 +296,26 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         firstScene.setCamera(camera);
 
         float tx = START_X;
-        for(int i = 0;i<20;i++) {
-            Object3D block = new Object3D(R.raw.sidewalk_block_iii, context);
+        //for(int i = 0;i<20;i++) {
+            Object3D block = new Object3D(R.raw.sidewalk_block_iv, context);
             block.setCollider(new BoxCollider());
 
-            block.setLength(2f);
+            block.setLength(100f);
             block.setHeight(0.5f);
             block.setBredth(4f);
             block.setLocation(new SimpleVector(tx, START_Y, 0f));
-            block.setRenderingPreferences(DiffSpecProgram, Object3D.DIFF_N_SPEC_MAP);
+            block.setRenderingPreferences(ptLightProgram, Object3D.LIGHTING_SYSTEM_SPEC);
             block.setTextureOpacity(1f);
-            block.setShininess(2f);
+            block.setShininess(1f);
 
-            block.setTextureUnit(blockT);
+            block.setTextureUnit(rickuii);
 
             listener.addCollisionObjects(block);
             targetListener.addCollisionObjects(block);
 
-            tx+=2f;
+            //tx+=2f;
             firstScene.addSceneObject(block);
-        }
+        //}
 
         Object3D bin = new Object3D(R.raw.garbage_bin_ii,context);
         bin.setTextureUnit(garbageBin);
@@ -306,7 +323,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         bin.setLocation(new SimpleVector(START_X+15f,START_Y+bin.getHeight()/2,START_Z-3f));
         bin.setRenderingPreferences(DiffSpecProgram, Object3D.DIFF_N_SPEC_MAP);
         bin.setTextureOpacity(1f);
-        bin.setShininess(3f);
+        bin.setShininess(1f);
         firstScene.addSceneObject(bin);
 
         Object3D dirt = new Object3D(R.raw.garbage_bin_i_dirt, context);
@@ -315,7 +332,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         dirt.setLocation(new SimpleVector(START_X+15f,START_Y+bin.getHeight()/2-0.1f,START_Z-3f));
         dirt.setRenderingPreferences(ptLightProgram, Object3D.LIGHTING_SYSTEM_SPEC);
         dirt.setTextureOpacity(1f);
-        dirt.setShininess(1f);
+        dirt.setShininess(0.3f);
         firstScene.addSceneObject(dirt);
 
         /*Object3D rickShip = new Object3D(R.raw.car_model_i,R.drawable.rickuii, context);
@@ -333,7 +350,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         car.setLocation(new SimpleVector(10f,0f,START_Z+5f));
         car.setRenderingPreferences(ptLightProgram, Object3D.LIGHTING_SYSTEM_SPEC);
         car.setTextureOpacity(1f);
-        car.setShininess(3f);
+        car.setShininess(1f);
         firstScene.addSceneObject(car);
 
         Object3D house = new Object3D(R.raw.house_base, context);
@@ -344,7 +361,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         house.setLocation(new SimpleVector(START_X+10f,START_Y,START_Z-4f-5f));
         house.setRenderingPreferences(ptLightProgram, Object3D.LIGHTING_SYSTEM_SPEC);
         house.setTextureOpacity(1f);
-        house.setShininess(1f);
+        house.setShininess(0.3f);
 
         houseGlass.setLocation(new SimpleVector(START_X+10f,START_Y,START_Z-4f-5f));
         houseGlass.setRenderingPreferences(ptLightProgram, Object3D.LIGHTING_SYSTEM_SPEC);
@@ -365,6 +382,19 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         skybox.setTextureUnit(nightSky);
         //firstScene.addSceneObject(skybox);
 
+        Texture cback = new Texture("cback",context, R.drawable.citybackground_ii);
+        Object3D cityBack = new Object3D(R.raw.citybackground_ii, context);
+        cityBack.setLength(60f);
+        cityBack.setHeight(40f);
+        cityBack.setBredth(20f);
+        cityBack.setLocation(new SimpleVector(START_X+7f,START_Y+20f,START_Z-10f));
+        cityBack.setRenderingPreferences(refProgram, Object3D.DIRECTIONAL_WITH_SPEC);
+        cityBack.setTextureOpacity(1f);
+        cityBack.setShininess(0f);
+        cityBack.setTextureUnit(cback);
+        cityBack.follow(mainCharacter);
+        cityBack.setLightingSystem(lightingSystem);
+        firstScene.addSceneObject(cityBack);
 
         tx = START_X+5f;
         for(int i=0;i<5;i++) {
@@ -374,7 +404,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             ground.setLocation(new SimpleVector(tx,START_Y,-7f));
             ground.setRenderingPreferences(ptLightProgram, Object3D.LIGHTING_SYSTEM_SPEC);
             ground.setTextureOpacity(1f);
-            ground.setShininess(1f);
+            ground.setShininess(0.2f);
             ground.setTextureUnit(rickuii);
             firstScene.addSceneObject(ground);
             tx+=10f;
@@ -392,7 +422,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             pole.setLocation(new SimpleVector(tx,START_Y,-3f));
             pole.setRenderingPreferences(ptLightProgram, Object3D.LIGHTING_SYSTEM_SPEC);
             pole.setTextureOpacity(1f);
-            pole.setShininess(4f);
+            pole.setShininess(1f);
 
             firstScene.addSceneObject(pole);
             tx+=8f;
@@ -400,7 +430,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
 
 
 
-        tx = START_X+15f;
+        tx = START_X+2f;
         for(int i=0;i<2;i++) {
             Object3D tree = new Object3D(R.raw.tree_i, context);
             tree.setLength(5f);
@@ -409,30 +439,30 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             tree.setLocation(new SimpleVector(tx,START_Y,-5f));
             tree.setRenderingPreferences(ptLightProgram, Object3D.LIGHTING_SYSTEM_SPEC);
             tree.setTextureOpacity(1f);
-            tree.setShininess(2f);
+            tree.setShininess(0.3f);
 
             tree.setTextureUnit(rickuii);
 
             firstScene.addSceneObject(tree);
-            tx+=10f;
+            tx+=45f;
         }
 
         //tx = START_X+15f;
-        for(int i=0;i<3;i++) {
+        //for(int i=0;i<3;i++) {
             Object3D tree = new Object3D(R.raw.tree_ii, context);
             tree.setLength(5f);
             tree.setBredth(5f);
             tree.setHeight(8f);
-            tree.setLocation(new SimpleVector(tx,START_Y,-5f));
+            tree.setLocation(new SimpleVector(20f,START_Y,-5f));
             tree.setRenderingPreferences(ptLightProgram, Object3D.LIGHTING_SYSTEM_SPEC);
             tree.setTextureOpacity(1f);
-            tree.setShininess(1f);
+            tree.setShininess(0.3f);
 
             tree.setTextureUnit(rickuii);
 
             firstScene.addSceneObject(tree);
-            tx+=10f;
-        }
+           // tx+=10f;
+        //}
 
         tx = START_X+5f;
         for(int i=0;i<5;i++) {
@@ -442,7 +472,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             fence.setLocation(new SimpleVector(tx,START_Y,-14f));
             fence.setRenderingPreferences(ptLightProgram, Object3D.LIGHTING_SYSTEM_SPEC);
             fence.setTextureOpacity(1f);
-            fence.setShininess(1f);
+            fence.setShininess(0.3f);
 
             fence.setTextureUnit(woodT);
 
@@ -461,7 +491,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             road.setLocation(new SimpleVector(tx, START_Y, 7f));
             road.setRenderingPreferences(DiffSpecProgram, Object3D.DIFF_N_SPEC_MAP);
             road.setTextureOpacity(1f);
-            road.setShininess(3f);
+            road.setShininess(1f);
 
             firstScene.addSceneObject(road);
             tx+=10f;
@@ -475,6 +505,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         target.setLength(0.6f);
         target.setBredth(0.4f);
         target.setHeight(1.6f);
+        target.getMain().setShininess(0.3f);
         target.setVerticalVel(-0.004f);
         target.getMain().setShininess(1f);
         target.setLocation(new SimpleVector(10f,4f,0f));
@@ -501,6 +532,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         targetWF = new Wireframe(target);
 
         punchFrame = punch.getMaxZFNumber();
+        punchPauseFrame = punch.getMinZFNumber();
     }
 
     @Override
@@ -535,9 +567,9 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         firstScene.setRenderingPreferences(shadowProgram, Object3D.LIGHT_WITH_SHADOW);*/
 
         //firstScene.setRenderingPreferences(ptLightProgram, Object3D.LIGHTING_SYSTEM_SPEC);
-        HDRBuffer.renderFrame(firstScene);
+        //HDRBuffer.renderFrame(firstScene);
         ////////////////////////////////////////////////////////////////////////////////////////////
-        GLES30.glViewport(0,0,(int)WIDTH, (int)HEIGHT);
+        //GLES30.glViewport(0,0,(int)WIDTH, (int)HEIGHT);
         GLES30.glClearColor(((float)200/255), (float)200/255, (float)200/255,1f);
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
         if(isReady) {
@@ -585,6 +617,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
                 if(mainCharacter.getLocation().x < target.getLocation().x && mainCharacter.getHorizontalVel()>0 ||
                         mainCharacter.getLocation().x > target.getLocation().x && mainCharacter.getHorizontalVel()<0) {
                     target.setHorizontalVel(mainCharacter.getHorizontalVel());
+                    //mainCharacter.setHorizontalVel(0f);
                 }
             }
         }else{
@@ -622,7 +655,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
                     }
                     mainCharacter.setHorizontalVel(dPad.activeDpadX * 0.25f);
                     mainCharacter.setAnimationTBP(walk.getID());
-                    mainCharacter.setActivePose(gunFront.getId());
+                    mainCharacter.setActivePose(walkPose.getId());
                 }
             }
         }else if(jumpButton.wasClicked()){
@@ -631,26 +664,23 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
             jumpStartTime = System.nanoTime();
         }
 
-        if(punchButton.isClicked()){
+
+
+      if(punchButton.wasClicked()){
             mainCharacter.setAnimationTBP(punch.getID());
-            mainCharacter.setActivePose(gunFront.getId());
-        }else if(shootButton.isClicked()){
-
-        }
-
-        if(punchButton.wasClicked()){
+            mainCharacter.setActivePose(walkPose.getId());
             if(!punch.isFinished()){
-                if(punch.getCurrentAnimatingFrame() == punchFrame && testCHandler.isCOLLISION_DETECTED()){
+                if(punch.getCurrentAnimatingFrame() == punchFrame && testCHandler.isSTILL_COLLIDING()){
                     if(mainCharacter.getLocation().x > target.getLocation().x) {
                         target.setVerticalVel(0.01f);
                         target.setHorizontalVel(-0.04f);
                         System.out.println("PUNCHED >>> PUNCHED >>> PUNCHED");
-                        testCHandler.resetCOLLISION_DETECTED();
+                       // testCHandler.resetCOLLISION_DETECTED();
                     }else if(mainCharacter.getLocation().x < target.getLocation().x){
                         target.setVerticalVel(0.01f);
                         target.setHorizontalVel(0.04f);
                         System.out.println("PUNCHED >>> PUNCHED >>> PUNCHED");
-                        testCHandler.resetCOLLISION_DETECTED();
+                        //testCHandler.resetCOLLISION_DETECTED();
                     }
                 }
             }else{
@@ -708,7 +738,7 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         float[] color = {1.0f,1.0f,0f,1f};
         textDecoder.drawText("FPS: "+frameCountToDraw,new SimpleVector(-1.0f,0.8f,2f),new SimpleVector(1.0f,1.0f,1f),uiMVPMatrix, color);
         sceneControlHandler.onDrawFrame(uiMVPMatrix);
-        HDRBuffer.onDrawFrame(uiMVPMatrix);
+        //HDRBuffer.onDrawFrame(uiMVPMatrix);
     }
 
     private void drawLoadingDialog(){
@@ -722,10 +752,6 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         loadingTitle.draw(uiMVPMatrix);
     }
 
-    public void onStop(){
-        listener.stop();
-    }
-
     public boolean isReady(){
         return isReady;
     }
@@ -733,26 +759,11 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
     public void onTouchDown(MotionEvent event){
         sceneControlHandler.onTouchDown(event);
     }
-
-    public void onSecondTouchDown(MotionEvent event){
-        //sceneControlHandler.onTou(controller.secondPtrX, controller.secondPtrY);
-    }
-
     public void onTouchUp(MotionEvent event){
         sceneControlHandler.onTouchUp(event);
     }
-
-    public void onSecondTouchUp(MotionEvent event){
-        //sceneControlHandler.onExtraTouchUp(controller.secondPtrX, controller.secondPtrY);
-    }
-
     public void onTouchMove(MotionEvent event){
         sceneControlHandler.onTouchMove(event);
-    }
-
-    public void updateLights(){
-        //lights[22] = camera.getPosition().z;
-       // lights[20] = mainCharacter.getLocation().x;
     }
 
     private void initializeLighting(){
@@ -778,12 +789,12 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         lightingSystem.addLight(l);
 
         l=new Light(new SimpleVector(10f-4.5f,2f,-6.3f),new SimpleVector(1f,0.3f,0.02f),
-                new SimpleVector(0.8f,0.8f,0.8f), 0.1f);
+                new SimpleVector(0.4f,0.4f,0.4f), 0.1f);
         l.setIntensity(5f);
         lightingSystem.addLight(l);
 
         l = new Light(new SimpleVector(10f+4.5f,2f,-6.3f),new SimpleVector(1f,0.3f,0.02f),
-                new SimpleVector(0.8f,0.8f,0.8f), 0.1f);
+                new SimpleVector(0.4f,0.4f,0.4f), 0.1f);
         l.setIntensity(5f);
         lightingSystem.addLight(l);
 
@@ -856,5 +867,10 @@ public class MainGameRenderer implements GLSurfaceView.Renderer {
         return res;
     }
 
+    public void onBackPressed(){
+        listener.stop();
+        targetListener.stop();
+        testCListener.stop();
+    }
 
 }
